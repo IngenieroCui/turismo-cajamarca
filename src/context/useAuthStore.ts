@@ -152,6 +152,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const assignedRole = role || UserRoleEnum.TURISTA;
 
+      // Pasar TODOS los campos en options.data para que el Trigger los reciba en raw_user_meta_data
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -160,6 +161,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             full_name: fullName,
             role: assignedRole,
             phone: phone || null,
+            document_type: documentType,
+            document_number: documentNumber || null,
+            country_of_origin: countryOfOrigin || 'Colombia',
+            nationality: nationality || 'Colombiana',
+            preferred_language: preferredLanguage || 'es',
+            emergency_contact_name: emergencyContactName || null,
+            emergency_contact_phone: emergencyContactPhone || null,
           },
         },
       });
@@ -187,7 +195,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           tenant_id: null,
           permissions: assignedRole === UserRoleEnum.SUPER_ADMIN ? ['*'] : [],
           is_active: true,
-          is_verified: false,
+          is_verified: true,
         };
 
         // 1. Guardar en `turismo_profiles`
@@ -196,7 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .from('turismo_profiles')
             .upsert([newProfile], { onConflict: 'id' });
         } catch (e) {
-          console.warn('[useAuthStore]: Non-fatal profile creation catch:', e);
+          console.warn('[useAuthStore]: Profile creation catch:', e);
         }
 
         // 2. Guardar extensión en `turismo_tourist_profiles`
