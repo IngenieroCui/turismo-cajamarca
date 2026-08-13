@@ -42,14 +42,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchProfile: async (userId: string): Promise<UserProfile | null> => {
     try {
+      // Consulta a la tabla con prefijo del proyecto: turismo_profiles
       const { data, error } = await supabase
-        .from('profiles')
+        .from('turismo_profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (error) {
-        console.warn('[useAuthStore]: Error fetching user profile:', error.message);
+        console.warn('[useAuthStore]: Error fetching user profile from turismo_profiles table:', error.message);
         return null;
       }
 
@@ -148,8 +149,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           is_verified: false,
         };
 
+        // Insertar en la tabla con prefijo del proyecto: turismo_profiles
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('turismo_profiles')
           .upsert([newProfile], { onConflict: 'id' });
 
         if (profileError) {
