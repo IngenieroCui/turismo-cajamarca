@@ -42,7 +42,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchProfile: async (userId: string): Promise<UserProfile | null> => {
     try {
-      // Consulta a la tabla con prefijo del proyecto: turismo_profiles
       const { data, error } = await supabase
         .from('turismo_profiles')
         .select('*')
@@ -55,6 +54,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       if (data) {
+        let touristExtension = {};
+        if (data.role === UserRoleEnum.TURISTA || data.role === UserRoleEnum.USUARIO) {
+          const { data: tData } = await supabase
+            .from('turismo_tourist_profiles')
+            .select('*')
+            .eq('profile_id', userId)
+            .maybeSingle();
+
+          if (tData) {
+            touristExtension = {
+              country_of_origin: tData.country_of_origin,
+              nationality: tData.nationality,
+              preferred_language: tData.preferred_language,
+              emergency_contact_name: tData.emergency_contact_name,
+              emergency_contact_phone: tData.emergency_contact_phone,
+            };
+          }
+        }
+
         const userProfile: UserProfile = {
           id: data.id,
           email: data.email,
@@ -73,6 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           is_verified: data.is_verified ?? false,
           created_at: data.created_at ?? new Date().toISOString(),
           updated_at: data.updated_at ?? new Date().toISOString(),
+          ...touristExtension,
         };
 
         set({ profile: userProfile });
@@ -113,10 +132,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async ({ email, password, fullName, role = UserRoleEnum.USUARIO, subRole, rntNumber }: SignUpFormData) => {
+  signUp: async ({
+    email,
+    password,
+    fullName,
+    phone,
+    documentType = 'DNI',
+    documentNumber,
+    countryOfOrigin = 'Colombia',
+    nationality = 'Colombiana',
+    preferredLanguage = 'es',
+    emergencyContactName,
+    emergencyContactPhone,
+    role = UserRoleEnum.TURISTA,
+    subRole,
+    rntNumber,
+  }: SignUpFormData) => {
     set({ loading: true, error: null });
     try {
-      const assignedRole = role || UserRoleEnum.USUARIO;
+      const assignedRole = role || UserRoleEnum.TURISTA;
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -125,7 +159,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           data: {
             full_name: fullName,
             role: assignedRole,
-            sub_role: subRole || null,
+            phone: phone || null,
           },
         },
       });
@@ -140,6 +174,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           id: data.user.id,
           email,
           full_name: fullName,
+          phone: phone || null,
+          document_type: documentType,
+          document_number: documentNumber || null,
           role: assignedRole,
           sub_role: subRole || null,
           rnt_number: rntNumber || null,
@@ -149,7 +186,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           is_verified: false,
         };
 
-        // Insertar en la tabla con prefijo del proyecto: turismo_profiles
+        // 1. Guardar en `turismo_profiles`
         const { error: profileError } = await supabase
           .from('turismo_profiles')
           .upsert([newProfile], { onConflict: 'id' });
@@ -158,10 +195,37 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.warn('[useAuthStore]: Non-fatal profile creation warning:', profileError.message);
         }
 
+        // 2. Si el rol es Turista o Usuario, guardar extensión en `turismo_tourist_profiles`
+        if (assignedRole === UserRoleEnum.TURISTA || assignedRole === UserRoleEnum.USUARIO) {
+          const touristData = {
+            profile_id: data.user.id,
+            country_of_origin: countryOfOrigin || 'Colombia',
+            nationality: nationality || 'Colombiana',
+            preferred_language: preferredLanguage || 'es',
+            emergency_contact_name: emergencyContactName || null,
+            emergency_contact_phone: emergencyContactPhone || null,
+          };
+
+          const { error: touristError } = await supabase
+            .from('turismo_tourist_profiles')
+            .upsert([touristData], { onConflict: 'profile_id' });
+
+          if (touristError) {
+            console.warn('[useAuthStore]: Tourist profile extension warning:', touristError.message);
+          }
+        }
+
         set({
           session: data.session,
           user: data.user,
-          profile: newProfile as UserProfile,
+          profile: {
+            ...newProfile,
+            country_of_origin: countryOfOrigin,
+            nationality,
+            preferred_language: preferredLanguage,
+            emergency_contact_name: emergencyContactName,
+            emergency_contact_phone: emergencyContactPhone,
+          } as UserProfile,
         });
       }
 

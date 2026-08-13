@@ -74,7 +74,7 @@ export type Permission =
   | 'regulatory:compliance_report';
 
 /**
- * Perfil de usuario mapeado a la tabla `profiles` en Supabase
+ * Perfil de usuario mapeado a la tabla `turismo_profiles` en Supabase
  */
 export interface UserProfile {
   id: string; // Auth UUID
@@ -94,6 +94,13 @@ export interface UserProfile {
   is_verified: boolean;
   created_at: string;
   updated_at: string;
+
+  // Extensión para Turista
+  country_of_origin?: string | null;
+  nationality?: string | null;
+  preferred_language?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
 }
 
 /**
@@ -226,13 +233,21 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
- * Esquema Zod para Registro de Usuario (Por defecto: rol usuario)
+ * Esquema Zod para Registro de Usuario (Por defecto: rol turista)
  */
 export const signUpSchema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido.'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
   confirmPassword: z.string().min(6, 'Confirma tu contraseña.'),
   fullName: z.string().min(2, 'Ingresa tu nombre completo.'),
+  phone: z.string().optional(),
+  documentType: z.enum(['DNI', 'RUC', 'PASAPORTE', 'CE']).default('DNI'),
+  documentNumber: z.string().optional(),
+  countryOfOrigin: z.string().optional(),
+  nationality: z.string().optional(),
+  preferredLanguage: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
   role: z.enum([
     'usuario',
     'turista',
@@ -249,7 +264,7 @@ export const signUpSchema = z.object({
     'afiliado',
     'funcionario_mincit',
     'camara_comercio',
-  ]).default('usuario'),
+  ]).default('turista'),
   subRole: z
     .enum(['alojamiento', 'gastronomia', 'agencia_viajes', 'transporte', 'guia', 'artesania', 'entretenimiento'])
     .optional(),
