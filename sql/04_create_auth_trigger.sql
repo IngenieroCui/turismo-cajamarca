@@ -1,8 +1,7 @@
 -- =============================================================================
--- TURISMO CAJAMARCA PWA - SCRIPT 04: TRIGGER AUTOMÁTICO DE AUTH (Resiliente)
+-- TURISMO CAJAMARCA PWA - SCRIPT 04: TRIGGER AUTOMÁTICO DE AUTH (Sin Confirmación)
 -- =============================================================================
 
--- Eliminar posibles triggers antiguos que causen error 500 en Supabase Auth
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
 
@@ -27,7 +26,16 @@ BEGIN
     user_role_val := 'turista'::public.turismo_user_role_enum;
   END;
 
-  -- Insertar perfil en `turismo_profiles` sin bloquear Supabase Auth si la tabla no existe
+  -- 1. Auto-confirmar correo electrónico en `auth.users` sin requerir validación por email
+  BEGIN
+    UPDATE auth.users
+    SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
+    WHERE id = NEW.id AND email_confirmed_at IS NULL;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  -- 2. Insertar perfil en `turismo_profiles` (marcado como activo y verificado)
   BEGIN
     INSERT INTO public.turismo_profiles (
       id,
@@ -43,20 +51,20 @@ BEGIN
       user_full_name,
       user_role_val,
       TRUE,
-      FALSE,
+      TRUE, -- Verificado por defecto
       CASE WHEN user_role_val = 'super_admin' THEN ARRAY['*'] ELSE ARRAY[]::TEXT[] END
     )
     ON CONFLICT (id) DO UPDATE
     SET
       email = EXCLUDED.email,
       full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
-      role = EXCLUDED.role;
+      role = EXCLUDED.role,
+      is_verified = TRUE;
   EXCEPTION WHEN OTHERS THEN
-    -- Si la tabla aún no existe en Supabase, ignora el error para no arrojar 500
     NULL;
   END;
 
-  -- Insertar extensión en `turismo_tourist_profiles`
+  -- 3. Insertar extensión en `turismo_tourist_profiles`
   BEGIN
     IF user_role_val = 'turista' OR user_role_val = 'usuario' THEN
       INSERT INTO public.turismo_tourist_profiles (profile_id, country_of_origin, preferred_language)
@@ -71,7 +79,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Re-crear el trigger único en `auth.users`
+-- Re-crear el trigger en `auth.users`
 CREATE TRIGGER on_auth_user_created_turismo
   AFTER INSERT ON auth.users
   FOR EACH ROW

@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS public.turismo_profiles (
   tenant_id UUID,
   permissions TEXT[] DEFAULT '{}',
   is_active BOOLEAN DEFAULT TRUE,
-  is_verified BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS public.turismo_audit_logs (
 CREATE INDEX IF NOT EXISTS idx_turismo_audit_actor ON public.turismo_audit_logs(actor_id);
 CREATE INDEX IF NOT EXISTS idx_turismo_audit_created ON public.turismo_audit_logs(created_at);
 
--- 4. TRIGGER AUTOMÁTICO DE AUTH DE SUPABASE (Resiliente)
+-- 4. TRIGGER AUTOMÁTICO DE AUTH DE SUPABASE (Auto-confirmación de Email)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
 
@@ -220,6 +220,16 @@ BEGIN
     user_role_val := 'turista'::public.turismo_user_role_enum;
   END;
 
+  -- Auto-confirmación del correo en auth.users
+  BEGIN
+    UPDATE auth.users
+    SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
+    WHERE id = NEW.id AND email_confirmed_at IS NULL;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  -- Insertar perfil en `turismo_profiles`
   BEGIN
     INSERT INTO public.turismo_profiles (
       id,
@@ -235,14 +245,15 @@ BEGIN
       user_full_name,
       user_role_val,
       TRUE,
-      FALSE,
+      TRUE,
       CASE WHEN user_role_val = 'super_admin' THEN ARRAY['*'] ELSE ARRAY[]::TEXT[] END
     )
     ON CONFLICT (id) DO UPDATE
     SET
       email = EXCLUDED.email,
       full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
-      role = EXCLUDED.role;
+      role = EXCLUDED.role,
+      is_verified = TRUE;
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
