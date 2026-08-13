@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Footer.css';
+import { getPlatformLogo } from './utils/getPlatformLogo';
 
 export const Footer: React.FC = () => {
+  const [logoPath, setLogoPath] = useState<string>('/web/icon-192.png');
+
+  useEffect(() => {
+    setLogoPath(getPlatformLogo());
+  }, []);
+
   const handleWhatsAppClick = () => {
-    const message = encodeURIComponent('Hola, me gustaría información sobre el sistema de Turismo Cajamarca.');
+    const message = encodeURIComponent('Hola, me gustaría información sobre la app de Turismo Cajamarca.');
     const whatsappUrl = `https://wa.me/573025091063?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -15,24 +22,21 @@ export const Footer: React.FC = () => {
   return (
     <footer className="footer-container">
       <div className="footer-content">
-        {/* Izquierda - Brand */}
+        {/* Izquierda - Brand con Logo dinámico por plataforma (/web, /android, /ios) */}
         <div className="footer-section footer-brand">
           <div className="brand-logo">
-            <img 
-              src="/pwa-192x192.png" 
-              alt="Turismo Cajamarca"
+            <img
+              src={logoPath}
+              alt="Turismo Cajamarca Logo"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                if (target.parentElement) {
-                  target.parentElement.innerHTML = '<div class="developer-logo-fallback">TC</div>';
-                }
+                target.src = '/web/icon-192.png';
               }}
             />
           </div>
           <div className="brand-text">
             <h3>Turismo Cajamarca</h3>
-            <p>Tecnoparque Tolima</p>
+            <p>Cajamarca - Tolima</p>
           </div>
         </div>
 
@@ -41,8 +45,8 @@ export const Footer: React.FC = () => {
           <div className="developer-card">
             {/* Logo IngNavs */}
             <div className="developer-logo">
-              <img 
-                src="/IngNavs.png" 
+              <img
+                src="/IngNavs.png"
                 alt="IngNavs Logo"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
