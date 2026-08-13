@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
 
       if (error) {
-        console.warn('[useAuthStore]: Error fetching user profile from turismo_profiles table:', error.message);
+        console.warn('[useAuthStore]: Warning fetching user profile from turismo_profiles table:', error.message);
         return null;
       }
 
@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           full_name: data.full_name ?? null,
           avatar_url: data.avatar_url ?? null,
           phone: data.phone ?? null,
-          role: (data.role as UserRole) || UserRoleEnum.USUARIO,
+          role: (data.role as UserRole) || UserRoleEnum.TURISTA,
           sub_role: data.sub_role ?? null,
           org_role: data.org_role ?? null,
           tenant_id: data.tenant_id ?? null,
@@ -165,8 +165,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (error) {
-        set({ loading: false, error: error.message });
-        return { success: false, error: error.message };
+        let friendlyError = error.message;
+        if (error.message.includes('Database error saving new user')) {
+          friendlyError = 'Debes ejecutar el script SQL sql/00_master_schema_all_in_one.sql en tu proyecto de Supabase para crear las tablas con el prefijo turismo_.';
+        }
+        set({ loading: false, error: friendlyError });
+        return { success: false, error: friendlyError };
       }
 
       if (data.user) {
@@ -187,31 +191,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
 
         // 1. Guardar en `turismo_profiles`
-        const { error: profileError } = await supabase
-          .from('turismo_profiles')
-          .upsert([newProfile], { onConflict: 'id' });
-
-        if (profileError) {
-          console.warn('[useAuthStore]: Non-fatal profile creation warning:', profileError.message);
+        try {
+          await supabase
+            .from('turismo_profiles')
+            .upsert([newProfile], { onConflict: 'id' });
+        } catch (e) {
+          console.warn('[useAuthStore]: Non-fatal profile creation catch:', e);
         }
 
-        // 2. Si el rol es Turista o Usuario, guardar extensión en `turismo_tourist_profiles`
+        // 2. Guardar extensión en `turismo_tourist_profiles`
         if (assignedRole === UserRoleEnum.TURISTA || assignedRole === UserRoleEnum.USUARIO) {
-          const touristData = {
-            profile_id: data.user.id,
-            country_of_origin: countryOfOrigin || 'Colombia',
-            nationality: nationality || 'Colombiana',
-            preferred_language: preferredLanguage || 'es',
-            emergency_contact_name: emergencyContactName || null,
-            emergency_contact_phone: emergencyContactPhone || null,
-          };
-
-          const { error: touristError } = await supabase
-            .from('turismo_tourist_profiles')
-            .upsert([touristData], { onConflict: 'profile_id' });
-
-          if (touristError) {
-            console.warn('[useAuthStore]: Tourist profile extension warning:', touristError.message);
+          try {
+            await supabase
+              .from('turismo_tourist_profiles')
+              .upsert([
+                {
+                  profile_id: data.user.id,
+                  country_of_origin: countryOfOrigin || 'Colombia',
+                  nationality: nationality || 'Colombiana',
+                  preferred_language: preferredLanguage || 'es',
+                  emergency_contact_name: emergencyContactName || null,
+                  emergency_contact_phone: emergencyContactPhone || null,
+                },
+              ], { onConflict: 'profile_id' });
+          } catch (e) {
+            console.warn('[useAuthStore]: Tourist profile extension catch:', e);
           }
         }
 

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- TURISMO CAJAMARCA PWA - ESQUEMA COMPLETO CON PREFIJO (turismo_)
--- Ejecuta este script en el SQL Editor de Supabase.
+-- Ejecuta este script en el SQL Editor de Supabase para inicializar las tablas.
 -- =============================================================================
 
 BEGIN;
@@ -196,58 +196,71 @@ CREATE TABLE IF NOT EXISTS public.turismo_audit_logs (
 CREATE INDEX IF NOT EXISTS idx_turismo_audit_actor ON public.turismo_audit_logs(actor_id);
 CREATE INDEX IF NOT EXISTS idx_turismo_audit_created ON public.turismo_audit_logs(created_at);
 
--- 4. TRIGGER AUTOMÁTICO DE AUTH DE SUPABASE
+-- 4. TRIGGER AUTOMÁTICO DE AUTH DE SUPABASE (Resiliente)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
+
 CREATE OR REPLACE FUNCTION public.turismo_handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  user_role public.turismo_user_role_enum;
+  user_role_text TEXT;
+  user_role_val public.turismo_user_role_enum;
   user_full_name TEXT;
 BEGIN
-  user_role := COALESCE(
-    (NEW.raw_user_meta_data->>'role')::public.turismo_user_role_enum,
-    'usuario'::public.turismo_user_role_enum
-  );
-
+  user_role_text := COALESCE(NEW.raw_user_meta_data->>'role', 'turista');
   user_full_name := COALESCE(
     NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'name',
     split_part(NEW.email, '@', 1)
   );
 
-  INSERT INTO public.turismo_profiles (
-    id,
-    email,
-    full_name,
-    role,
-    is_active,
-    is_verified,
-    permissions
-  ) VALUES (
-    NEW.id,
-    NEW.email,
-    user_full_name,
-    user_role,
-    TRUE,
-    FALSE,
-    CASE WHEN user_role = 'super_admin' THEN ARRAY['*'] ELSE ARRAY[]::TEXT[] END
-  )
-  ON CONFLICT (id) DO UPDATE
-  SET
-    email = EXCLUDED.email,
-    full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
-    role = EXCLUDED.role;
+  BEGIN
+    user_role_val := user_role_text::public.turismo_user_role_enum;
+  EXCEPTION WHEN OTHERS THEN
+    user_role_val := 'turista'::public.turismo_user_role_enum;
+  END;
 
-  IF user_role = 'turista' OR user_role = 'usuario' THEN
-    INSERT INTO public.turismo_tourist_profiles (profile_id, country_of_origin, preferred_language)
-    VALUES (NEW.id, 'Perú', 'es')
-    ON CONFLICT (profile_id) DO NOTHING;
-  END IF;
+  BEGIN
+    INSERT INTO public.turismo_profiles (
+      id,
+      email,
+      full_name,
+      role,
+      is_active,
+      is_verified,
+      permissions
+    ) VALUES (
+      NEW.id,
+      NEW.email,
+      user_full_name,
+      user_role_val,
+      TRUE,
+      FALSE,
+      CASE WHEN user_role_val = 'super_admin' THEN ARRAY['*'] ELSE ARRAY[]::TEXT[] END
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET
+      email = EXCLUDED.email,
+      full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
+      role = EXCLUDED.role;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  BEGIN
+    IF user_role_val = 'turista' OR user_role_val = 'usuario' THEN
+      INSERT INTO public.turismo_tourist_profiles (profile_id, country_of_origin, preferred_language)
+      VALUES (NEW.id, 'Colombia', 'es')
+      ON CONFLICT (profile_id) DO NOTHING;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
 CREATE TRIGGER on_auth_user_created_turismo
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -265,6 +278,11 @@ DROP POLICY IF EXISTS "Permitir lectura del propio perfil turismo" ON public.tur
 CREATE POLICY "Permitir lectura del propio perfil turismo"
   ON public.turismo_profiles FOR SELECT
   USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Permitir insercion del propio perfil turismo" ON public.turismo_profiles;
+CREATE POLICY "Permitir insercion del propio perfil turismo"
+  ON public.turismo_profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Permitir a Admin y SuperAdmin leer todos los perfiles turismo" ON public.turismo_profiles;
 CREATE POLICY "Permitir a Admin y SuperAdmin leer todos los perfiles turismo"
@@ -294,16 +312,23 @@ CREATE POLICY "Permitir a SuperAdmin administrar perfiles turismo"
     )
   );
 
+-- Políticas de Tourist Profiles
 DROP POLICY IF EXISTS "Turistas leen su propio perfil turista turismo" ON public.turismo_tourist_profiles;
 CREATE POLICY "Turistas leen su propio perfil turista turismo"
   ON public.turismo_tourist_profiles FOR SELECT
   USING (auth.uid() = profile_id);
+
+DROP POLICY IF EXISTS "Turistas insertan su propio perfil turista turismo" ON public.turismo_tourist_profiles;
+CREATE POLICY "Turistas insertan su propio perfil turista turismo"
+  ON public.turismo_tourist_profiles FOR INSERT
+  WITH CHECK (auth.uid() = profile_id);
 
 DROP POLICY IF EXISTS "Turistas editan su propio perfil turista turismo" ON public.turismo_tourist_profiles;
 CREATE POLICY "Turistas editan su propio perfil turista turismo"
   ON public.turismo_tourist_profiles FOR UPDATE
   USING (auth.uid() = profile_id);
 
+-- Políticas de Provider Profiles
 DROP POLICY IF EXISTS "Prestadores leen su propio perfil turismo" ON public.turismo_provider_profiles;
 CREATE POLICY "Prestadores leen su propio perfil turismo"
   ON public.turismo_provider_profiles FOR SELECT
@@ -330,16 +355,19 @@ CREATE POLICY "Entidades Reguladoras leen prestadores turismo"
     )
   );
 
-DROP POLICY IF EXISTS "Afiliados leen sus datos de comisiones turismo" ON public.turismo_affiliate_profiles;
+-- Políticas de Affiliate Profiles
+DROP POLICY IF EXISTS "Afiliados leen sus datos de comisiones turismo" ON public.affiliate_profiles;
 CREATE POLICY "Afiliados leen sus datos de comisiones turismo"
   ON public.turismo_affiliate_profiles FOR SELECT
   USING (auth.uid() = profile_id);
 
+-- Políticas de Regulatory Profiles
 DROP POLICY IF EXISTS "Reguladores leen sus datos de entidad turismo" ON public.turismo_regulatory_profiles;
 CREATE POLICY "Reguladores leen sus datos de entidad turismo"
   ON public.turismo_regulatory_profiles FOR SELECT
   USING (auth.uid() = profile_id);
 
+-- Políticas de Audit Logs
 DROP POLICY IF EXISTS "Auditores y Admins leen logs de auditoria turismo" ON public.turismo_audit_logs;
 CREATE POLICY "Auditores y Admins leen logs de auditoria turismo"
   ON public.turismo_audit_logs FOR SELECT
