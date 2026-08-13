@@ -1,8 +1,9 @@
+import React from 'react';
 import './Footer.css';
 
-const Footer = () => {
+export const Footer: React.FC = () => {
   const handleWhatsAppClick = () => {
-    const message = encodeURIComponent('Me gustaría que me ayudaras con la creación de mi app web');
+    const message = encodeURIComponent('Hola, me gustaría información sobre el sistema de Turismo Cajamarca.');
     const whatsappUrl = `https://wa.me/573025091063?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -18,20 +19,20 @@ const Footer = () => {
         <div className="footer-section footer-brand">
           <div className="brand-logo">
             <img 
-                src="/logosena.png" 
-                alt="Sena"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  if (target.parentElement) {
-                    target.parentElement.innerHTML = '<div class="developer-logo-fallback">IN</div>';
-                  }
-                }}
-              />
+              src="/pwa-192x192.png" 
+              alt="Turismo Cajamarca"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                if (target.parentElement) {
+                  target.parentElement.innerHTML = '<div class="developer-logo-fallback">TC</div>';
+                }
+              }}
+            />
           </div>
           <div className="brand-text">
-            <h3>Tecnoparque Tolima</h3>
-            <p></p>
+            <h3>Turismo Cajamarca</h3>
+            <p>Tecnoparque Tolima</p>
           </div>
         </div>
 
@@ -58,6 +59,7 @@ const Footer = () => {
               <button
                 onClick={handleIngNavsClick}
                 className="developer-link"
+                type="button"
               >
                 <p className="developer-text">
                   Desarrollado por:{' '}
@@ -76,6 +78,7 @@ const Footer = () => {
               className="whatsapp-button"
               aria-label="Contactar por WhatsApp"
               title="Contactar por WhatsApp"
+              type="button"
             >
               <svg
                 width="28"

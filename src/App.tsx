@@ -1,122 +1,122 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './context/useAuthStore';
+import { UserRoleEnum } from './types/auth.types';
+import ProtectedRoute from './components/guard/ProtectedRoute';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Componentes por Carpeta (Estructura organizada del proyecto)
+import Login from './pages/login/Login';
+import SignUp from './pages/login/SignUp';
+import Unauthorized from './pages/Unauthorized';
+
+import UsuarioPage from './pages/usuario/UsuarioPage';
+import TuristaPage from './pages/turista/TuristaPage';
+import PrestadorTuristicoPage from './pages/prestador_turistico/PrestadorTuristicoPage';
+import AdminPage from './pages/admin/AdminPage';
+import SuperAdminPage from './pages/super_admin/SuperAdminPage';
+import ModeradorPage from './pages/moderador/ModeradorPage';
+import AuditorPage from './pages/auditor/AuditorPage';
+import SoportePage from './pages/soporte/SoportePage';
+import AnalistaDatosPage from './pages/analista_datos/AnalistaDatosPage';
+import ServiciosIaPage from './pages/servicios_ia/ServiciosIaPage';
+import DesarrolladorPage from './pages/desarrollador/DesarrolladorPage';
+import EmbajadorPage from './pages/embajador/EmbajadorPage';
+import AfiliadoPage from './pages/afiliado/AfiliadoPage';
+import FuncionarioMincitPage from './pages/funcionario_mincit/FuncionarioMincitPage';
+import CamaraComercioPage from './pages/camara_comercio/CamaraComercioPage';
+
+export const App: React.FC = () => {
+  const { listenToAuthChanges, user, profile } = useAuthStore();
+
+  useEffect(() => {
+    // Listener de cambios de autenticación en Supabase
+    const unsubscribe = listenToAuthChanges();
+    return () => {
+      unsubscribe();
+    };
+  }, [listenToAuthChanges]);
+
+  // Determinar ruta de dashboard por defecto del usuario autenticado
+  const userDefaultRoute = profile?.role ? `/${profile.role}` : '/usuario';
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <Routes>
+        {/* Lo primero que carga es la ventana de Login */}
+        <Route
+          path="/"
+          element={user ? <Navigate to={userDefaultRoute} replace /> : <Login />}
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-      <div className="ticks"></div>
+        {/* Rutas Protegidas por Rol en sus respectivas carpetas */}
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO]} />}>
+          <Route path="/usuario" element={<UsuarioPage />} />
+        </Route>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA]} />}>
+          <Route path="/turista" element={<TuristaPage />} />
+        </Route>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.PRESTADOR_TURISTICO]} />}>
+          <Route path="/prestador_turistico" element={<PrestadorTuristicoPage />} />
+        </Route>
 
-export default App
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.ADMIN]} />}>
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SUPER_ADMIN]} />}>
+          <Route path="/super_admin" element={<SuperAdminPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.MODERADOR]} />}>
+          <Route path="/moderador" element={<ModeradorPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.AUDITOR]} />}>
+          <Route path="/auditor" element={<AuditorPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SOPORTE]} />}>
+          <Route path="/soporte" element={<SoportePage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.ANALISTA_DATOS]} />}>
+          <Route path="/analista_datos" element={<AnalistaDatosPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SERVICIOS_IA]} />}>
+          <Route path="/servicios_ia" element={<ServiciosIaPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.DESARROLLADOR]} />}>
+          <Route path="/desarrollador" element={<DesarrolladorPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.EMBAJADOR]} />}>
+          <Route path="/embajador" element={<EmbajadorPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.AFILIADO]} />}>
+          <Route path="/afiliado" element={<AfiliadoPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.FUNCIONARIO_MINCIT]} />}>
+          <Route path="/funcionario_mincit" element={<FuncionarioMincitPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.CAMARA_COMERCIO]} />}>
+          <Route path="/camara_comercio" element={<CamaraComercioPage />} />
+        </Route>
+
+        {/* Fallback 404 -> Redirigir a ventana principal de Login */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export default App;
