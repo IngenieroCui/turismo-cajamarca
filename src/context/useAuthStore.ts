@@ -22,6 +22,7 @@ interface AuthState {
   signUp: (data: SignUpFormData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   fetchProfile: (userId: string) => Promise<UserProfile | null>;
+  updateProfile: (updatedData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
   listenToAuthChanges: () => () => void;
   clearError: () => void;
 
@@ -105,6 +106,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  updateProfile: async (updatedData: Partial<UserProfile>): Promise<{ success: boolean; error?: string }> => {
+    const { user } = get();
+    if (!user) return { success: false, error: 'No hay sesión de usuario activa.' };
+
+    set({ loading: true, error: null });
+    try {
+      const profilePayload: Record<string, unknown> = {};
+      if (updatedData.full_name !== undefined) profilePayload.full_name = updatedData.full_name;
+      if (updatedData.phone !== undefined) profilePayload.phone = updatedData.phone;
+      if (updatedData.document_type !== undefined) profilePayload.document_type = updatedData.document_type;
+      if (updatedData.document_number !== undefined) profilePayload.document_number = updatedData.document_number;
+
+      if (Object.keys(profilePayload).length > 0) {
+        const { error: pError } = await supabase
+          .from('turismo_profiles')
+          .update(profilePayload)
+          .eq('id', user.id);
+
+        if (pError) throw pError;
+      }
+
+      const touristPayload: Record<string, unknown> = {};
+      if (updatedData.country_of_origin !== undefined) touristPayload.country_of_origin = updatedData.country_of_origin;
+      if (updatedData.nationality !== undefined) touristPayload.nationality = updatedData.nationality;
+      if (updatedData.preferred_language !== undefined) touristPayload.preferred_language = updatedData.preferred_language;
+      if (updatedData.emergency_contact_name !== undefined) touristPayload.emergency_contact_name = updatedData.emergency_contact_name;
+      if (updatedData.emergency_contact_phone !== undefined) touristPayload.emergency_contact_phone = updatedData.emergency_contact_phone;
+
+      if (Object.keys(touristPayload).length > 0) {
+        const { error: tError } = await supabase
+          .from('turismo_tourist_profiles')
+          .upsert([{ profile_id: user.id, ...touristPayload }], { onConflict: 'profile_id' });
+
+        if (tError) throw tError;
+      }
+
+      await get().fetchProfile(user.id);
+      set({ loading: false });
+      return { success: true };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar perfil.';
+      set({ loading: false, error: errorMessage });
+      return { success: false, error: errorMessage };
+    }
+  },
+
   loginWithEmail: async ({ email, password }: LoginFormData) => {
     set({ loading: true, error: null });
     try {
@@ -152,7 +199,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const assignedRole = role || UserRoleEnum.TURISTA;
 
-      // Pasar TODOS los campos en options.data para que el Trigger los reciba en raw_user_meta_data
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -198,7 +244,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           is_verified: true,
         };
 
-        // 1. Guardar en `turismo_profiles`
         try {
           await supabase
             .from('turismo_profiles')
@@ -207,7 +252,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           console.warn('[useAuthStore]: Profile creation catch:', e);
         }
 
-        // 2. Guardar extensión en `turismo_tourist_profiles`
         if (assignedRole === UserRoleEnum.TURISTA || assignedRole === UserRoleEnum.USUARIO) {
           try {
             await supabase

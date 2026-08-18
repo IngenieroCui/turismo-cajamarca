@@ -10,7 +10,19 @@ import SignUp from './pages/login/SignUp';
 import Unauthorized from './pages/Unauthorized';
 
 import UsuarioPage from './pages/usuario/UsuarioPage';
+
+// Módulo Turista y Sub-rutas con Layout & Drawer
+import TouristLayout from './pages/turista/TouristLayout';
 import TuristaPage from './pages/turista/TuristaPage';
+import TouristProfilePage from './pages/turista/TouristProfilePage';
+import AtractivosPage from './pages/turista/AtractivosPage';
+import AlojamientosPage from './pages/turista/AlojamientosPage';
+import GastronomiaPage from './pages/turista/GastronomiaPage';
+import ToursPage from './pages/turista/ToursPage';
+import EventosPage from './pages/turista/EventosPage';
+import ArtesaniasPage from './pages/turista/ArtesaniasPage';
+import AsistenciaPage from './pages/turista/AsistenciaPage';
+
 import PrestadorTuristicoPage from './pages/prestador_turistico/PrestadorTuristicoPage';
 import AdminPage from './pages/admin/AdminPage';
 import SuperAdminPage from './pages/super_admin/SuperAdminPage';
@@ -51,13 +63,24 @@ export const App: React.FC = () => {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Rutas Protegidas por Rol en sus respectivas carpetas */}
+        {/* Rutas Protegidas por Rol */}
         <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO]} />}>
           <Route path="/usuario" element={<UsuarioPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA]} />}>
-          <Route path="/turista" element={<TuristaPage />} />
+        {/* MÓDULO TURISTA CON LAYOUT & DRAWER MENU */}
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA, UserRoleEnum.USUARIO]} />}>
+          <Route path="/turista" element={<TouristLayout />}>
+            <Route index element={<TuristaPage />} />
+            <Route path="perfil" element={<TouristProfilePage />} />
+            <Route path="atractivos" element={<AtractivosPage />} />
+            <Route path="alojamientos" element={<AlojamientosPage />} />
+            <Route path="gastronomia" element={<GastronomiaPage />} />
+            <Route path="tours" element={<ToursPage />} />
+            <Route path="eventos" element={<EventosPage />} />
+            <Route path="artesanias" element={<ArtesaniasPage />} />
+            <Route path="asistencia" element={<AsistenciaPage />} />
+          </Route>
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.PRESTADOR_TURISTICO]} />}>
