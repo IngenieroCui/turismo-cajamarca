@@ -72,7 +72,7 @@ export const Footer: React.FC = () => {
               </button>
               <p className="developer-version">
                 <span className="status-dot"></span>
-                Versión 1.0.0
+                Versión 1.2.0
               </p>
             </div>
 
