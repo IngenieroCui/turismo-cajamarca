@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ROLE_METADATA, UserRoleEnum, type UserRole, type UserProfile } from '../../types/auth.types';
 import { getFullProfilesByRole } from '../../services/profileService';
-import { toggleTurismoRoleStatus } from '../../services/rolesService';
+import { toggleTurismoRoleStatus, getAllUsersProfiles, type UserProfileItem } from '../../services/rolesService';
 import { useAuthStore } from '../../context/useAuthStore';
 import {
   ShieldCheck,
@@ -13,7 +13,6 @@ import {
   Mail,
   FileText,
   Calendar,
-  CheckCircle2,
   Building2,
   Award,
   Globe,
@@ -35,6 +34,7 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
 
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRoleEnum.PRESTADOR_TURISTICO);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -48,8 +48,12 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
   const loadRoleData = async (roleToLoad: UserRole) => {
     setLoading(true);
     setActionMessage(null);
-    const data = await getFullProfilesByRole(roleToLoad);
+    const [data, systemUsers] = await Promise.all([
+      getFullProfilesByRole(roleToLoad),
+      getAllUsersProfiles(),
+    ]);
     setProfiles(data);
+    setAllUsers(systemUsers);
     setLoading(false);
   };
 
@@ -95,9 +99,6 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
     );
   });
 
-  const activeCount = profiles.filter((p) => p.is_active).length;
-  const verifiedCount = profiles.filter((p) => p.is_verified).length;
-
   return (
     <div className="space-y-6">
       {/* BANNER PRINCIPAL: REVISIÓN DE ROLES */}
@@ -129,36 +130,53 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
           </button>
         </div>
 
-        {/* METRICAS DEL ROL SELECCIONADO */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="p-3.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider block">
-                Total Usuarios Creados
-              </span>
-              <span className="text-lg font-extrabold text-[var(--text-primary)] font-mono">{profiles.length}</span>
-            </div>
-            <User className="w-5 h-5 text-purple-400" />
+        {/* TARJETAS ESTADÍSTICAS POR ROL ACTIVO EN LA PLATAFORMA */}
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-[var(--text-muted)] font-extrabold uppercase tracking-wider">
+              Conteo de Usuarios con Rol Actual Activo por Categoría
+            </span>
+            <span className="text-[10px] text-purple-400 font-mono font-bold">
+              Haz clic en una tarjeta para revisar el rol
+            </span>
           </div>
 
-          <div className="p-3.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider block">
-                Usuarios Activos
-              </span>
-              <span className="text-lg font-extrabold text-emerald-400 font-mono">{activeCount}</span>
-            </div>
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {rolesList.map((rKey) => {
+              const rMeta = ROLE_METADATA[rKey];
+              const activeUsersCount = allUsers.filter((u) => u.role === rKey).length;
+              const isSelected = rKey === selectedRole;
 
-          <div className="p-3.5 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] flex items-center justify-between">
-            <div>
-              <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider block">
-                Usuarios Verificados
-              </span>
-              <span className="text-lg font-extrabold text-blue-400 font-mono">{verifiedCount}</span>
-            </div>
-            <Shield className="w-5 h-5 text-blue-400" />
+              return (
+                <div
+                  key={rKey}
+                  onClick={() => handleRoleChange(rKey)}
+                  className={`p-3.5 rounded-2xl border transition cursor-pointer flex flex-col justify-between space-y-2.5 ${
+                    isSelected
+                      ? 'bg-purple-600/10 border-purple-500 shadow-lg shadow-purple-600/10 ring-1 ring-purple-500/40'
+                      : 'bg-[var(--bg-primary)] border-[var(--border-light)] hover:border-purple-400/40 hover:bg-[var(--bg-hover)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border truncate max-w-[120px] ${rMeta.badgeColor}`}>
+                      {rMeta.label}
+                    </span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping shrink-0" title="Seleccionado actualmente" />
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-xl font-extrabold text-[var(--text-primary)] font-mono block leading-none">
+                      {activeUsersCount}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] font-semibold mt-1 block">
+                      {activeUsersCount === 1 ? 'Usuario activo' : 'Usuarios activos'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
