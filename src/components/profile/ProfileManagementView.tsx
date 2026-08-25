@@ -577,6 +577,58 @@ export const ProfileManagementView: React.FC = () => {
             </div>
           )}
 
+          {/* DESARROLLADOR / DEVOPS */}
+          {currentRole === 'desarrollador' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Usuario Git / GitHub</label>
+                <input
+                  type="text"
+                  placeholder="ej. @dev-cajamarca"
+                  value={gitHandle}
+                  onChange={(e) => setGitHandle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs font-mono focus:outline-none focus:border-purple-400 transition"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Entorno de Trabajo Asignado</label>
+                <select
+                  value={envAccess}
+                  onChange={(e) => setEnvAccess(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
+                >
+                  <option value="Staging">Staging (Pruebas)</option>
+                  <option value="Production">Production (Producción)</option>
+                  <option value="Sandbox">Sandbox / Localhost</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* SERVICIO IA / SISTEMA */}
+          {currentRole === 'servicios_ia' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre del Servicio IA</label>
+                <input
+                  type="text"
+                  value={serviceName}
+                  onChange={(e) => setServiceName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Versión del Modelo LLM</label>
+                <input
+                  type="text"
+                  value={modelVersion}
+                  onChange={(e) => setModelVersion(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs font-mono focus:outline-none focus:border-purple-400 transition"
+                />
+              </div>
+            </div>
+          )}
+
           {/* REGULADORES */}
           {(currentRole === 'funcionario_mincit' || currentRole === 'camara_comercio') && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
