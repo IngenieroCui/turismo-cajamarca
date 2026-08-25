@@ -49,7 +49,7 @@ export const App: React.FC = () => {
   }, [listenToAuthChanges]);
 
   // Determinar ruta de dashboard por defecto del usuario autenticado
-  const userDefaultRoute = profile?.role ? `/${profile.role}` : '/usuario';
+  const userDefaultRoute = profile?.role ? `/${profile.role}` : '/turista';
 
   return (
     <BrowserRouter>
@@ -62,9 +62,10 @@ export const App: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/dashboard" element={user ? <Navigate to={userDefaultRoute} replace /> : <Navigate to="/login" replace />} />
 
         {/* Rutas Protegidas por Rol */}
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO, UserRoleEnum.TURISTA]} />}>
           <Route path="/usuario" element={<UsuarioPage />} />
         </Route>
 

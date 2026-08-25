@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
-import { loginSchema } from '../../types/auth.types';
+import { loginSchema, UserRoleEnum } from '../../types/auth.types';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
 import { Footer } from '../../Footer';
 import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithEmail, profile, loading, error, clearError } = useAuthStore();
+  const { loginWithEmail, loading, error, clearError } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +39,10 @@ export const Login: React.FC = () => {
 
     const res = await loginWithEmail({ email, password });
     if (res.success) {
-      const targetPath = from || (profile?.role ? `/${profile.role}` : '/usuario');
+      const currentProfile = res.profile || useAuthStore.getState().profile;
+      const activeRole = currentProfile?.role || UserRoleEnum.TURISTA;
+      const defaultRolePath = `/${activeRole}`;
+      const targetPath = from || defaultRolePath;
       navigate(targetPath, { replace: true });
     }
   };

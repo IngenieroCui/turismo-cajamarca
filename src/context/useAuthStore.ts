@@ -18,7 +18,7 @@ interface AuthState {
   initialized: boolean;
   error: string | null;
 
-  loginWithEmail: (data: LoginFormData) => Promise<{ success: boolean; error?: string }>;
+  loginWithEmail: (data: LoginFormData) => Promise<{ success: boolean; profile?: UserProfile | null; error?: string }>;
   signUp: (data: SignUpFormData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   fetchProfile: (userId: string) => Promise<UserProfile | null>;
@@ -165,13 +165,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return { success: false, error: error.message };
       }
 
+      let userProfile: UserProfile | null = null;
       if (data.session && data.user) {
         set({ session: data.session, user: data.user });
-        await get().fetchProfile(data.user.id);
+        userProfile = await get().fetchProfile(data.user.id);
       }
 
       set({ loading: false });
-      return { success: true };
+      return { success: true, profile: userProfile };
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error inesperado al iniciar sesión.';
       set({ loading: false, error: errorMessage });

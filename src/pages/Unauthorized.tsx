@@ -8,6 +8,8 @@ export const Unauthorized: React.FC = () => {
   const location = useLocation();
   const reason = (location.state as { reason?: string })?.reason;
 
+  const userDefaultRoute = profile?.role ? `/${profile.role}` : '/turista';
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full p-8 rounded-3xl bg-slate-800/50 border border-red-500/20 shadow-2xl text-center space-y-6">
@@ -29,7 +31,7 @@ export const Unauthorized: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link
-            to="/dashboard"
+            to={userDefaultRoute}
             className="flex-1 py-2.5 px-4 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2"
           >
             <UserCheck className="w-4 h-4" /> Ir a Mi Panel
