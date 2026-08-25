@@ -500,4 +500,68 @@ SET
   badge_color = EXCLUDED.badge_color,
   folder_name = EXCLUDED.folder_name;
 
+-- 8. TABLAS DE PERFILES ESPECIALIZADOS ADICIONALES POR ROL
+CREATE TABLE IF NOT EXISTS public.turismo_moderator_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  specialty_area TEXT DEFAULT 'General',
+  assigned_categories TEXT[] DEFAULT '{}',
+  moderation_level TEXT DEFAULT 'Junior',
+  daily_quota INT DEFAULT 50,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_moderator_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.turismo_auditor_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  audit_certification_id TEXT,
+  institutional_scope TEXT DEFAULT 'Regional',
+  security_clearance_level TEXT DEFAULT 'Nivel 2',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_auditor_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.turismo_support_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  support_level TEXT DEFAULT 'Nivel 1',
+  assigned_queue TEXT DEFAULT 'Atencion General',
+  max_refund_limit NUMERIC(10,2) DEFAULT 500.00,
+  shift_hours TEXT DEFAULT '8am - 5pm',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_support_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.turismo_analyst_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  bi_tool TEXT DEFAULT 'Metabase',
+  dataset_access_scope TEXT DEFAULT 'Datos Agregados Anonimizados',
+  export_format_permission BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_analyst_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.turismo_devops_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  git_handle TEXT,
+  environment_access TEXT DEFAULT 'Staging',
+  public_ssh_fingerprint TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_devops_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.turismo_ai_service_profiles (
+  profile_id UUID PRIMARY KEY REFERENCES public.turismo_profiles(id) ON DELETE CASCADE,
+  service_name TEXT DEFAULT 'Recomendador Gemini 2.5',
+  model_version TEXT DEFAULT 'v2.5-flash',
+  daily_token_quota INT DEFAULT 500000,
+  endpoint_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.turismo_ai_service_profiles ENABLE ROW LEVEL SECURITY;
+
 COMMIT;

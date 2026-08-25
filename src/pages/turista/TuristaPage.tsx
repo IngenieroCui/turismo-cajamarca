@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
+import { RoleDrawerLayout } from '../../components/RoleDrawerLayout';
 import {
   ATRACTIVOS_DATA,
   GASTRONOMIA_DATA,
