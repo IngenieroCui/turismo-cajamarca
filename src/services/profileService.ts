@@ -26,10 +26,10 @@ export const getUserFullRoleProfile = async (
 
     // 2. Obtener datos específicos según la tabla del rol
     if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
-      const { data } = await supabase.from('turismo_tourist_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_tourist_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
-      const { data } = await supabase.from('turismo_provider_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_provider_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) {
         extraData = {
           ...data,
@@ -37,28 +37,28 @@ export const getUserFullRoleProfile = async (
         };
       }
     } else if (role === UserRoleEnum.MODERADOR) {
-      const { data } = await supabase.from('turismo_moderator_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_moderator_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.AUDITOR) {
-      const { data } = await supabase.from('turismo_auditor_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_auditor_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.SOPORTE) {
-      const { data } = await supabase.from('turismo_support_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_support_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.ANALISTA_DATOS) {
-      const { data } = await supabase.from('turismo_analyst_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_analyst_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.DESARROLLADOR) {
-      const { data } = await supabase.from('turismo_devops_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_devops_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.SERVICIOS_IA) {
-      const { data } = await supabase.from('turismo_ai_service_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_ai_service_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const { data } = await supabase.from('turismo_regulatory_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_regulatory_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
-      const { data } = await supabase.from('turismo_affiliate_profiles').select('*').eq('profile_id', userId).single();
+      const { data } = await supabase.from('turismo_affiliate_profiles').select('*').eq('profile_id', userId).maybeSingle();
       if (data) extraData = data;
     }
 
@@ -108,38 +108,59 @@ export const updateUserRoleProfile = async (
     // 2. Upsert en la tabla del rol correspondiente
     if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_tourist_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_tourist_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
+      const defaultRuc = baseFields.document_number || '20000000000';
+      const defaultRazonSocial = baseFields.full_name || 'Prestador Cajamarca';
       const payload = {
         profile_id: userId,
-        sub_type: baseFields.sub_role || specificFields.sub_type,
+        ruc: specificFields.ruc || defaultRuc,
+        razon_social: specificFields.razon_social || defaultRazonSocial,
+        sub_type: baseFields.sub_role || specificFields.sub_type || 'alojamiento',
         org_role: baseFields.org_role || specificFields.org_role || 'dueno',
-        rnt_number: baseFields.rnt_number || specificFields.rnt_number,
+        rnt_number: baseFields.rnt_number || specificFields.rnt_number || 'RNT-PENDIENTE',
         ...specificFields,
         updated_at: new Date().toISOString(),
       };
-      await supabase.from('turismo_provider_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_provider_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.MODERADOR) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_moderator_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_moderator_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.AUDITOR) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_auditor_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_auditor_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.SOPORTE) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_support_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_support_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.ANALISTA_DATOS) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_analyst_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_analyst_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.DESARROLLADOR) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_devops_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_devops_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.SERVICIOS_IA) {
       const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_ai_service_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_ai_service_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      await supabase.from('turismo_regulatory_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const defaultEntity = role === UserRoleEnum.CAMARA_COMERCIO ? 'CAMARA_COMERCIO' : 'MINCIT';
+      const defaultInstId = specificFields.institutional_id || `REG-${userId.substring(0, 6).toUpperCase()}`;
+      const payload = {
+        profile_id: userId,
+        entity_type: defaultEntity,
+        institutional_id: defaultInstId,
+        ...specificFields,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('turismo_regulatory_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
       const defaultRefCode = `REF-${userId.substring(0, 6).toUpperCase()}`;
       const payload = {
@@ -148,7 +169,8 @@ export const updateUserRoleProfile = async (
         ...specificFields,
         updated_at: new Date().toISOString(),
       };
-      await supabase.from('turismo_affiliate_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.from('turismo_affiliate_profiles').upsert([payload], { onConflict: 'profile_id' });
+      if (error) throw error;
     }
 
     return { success: true };
