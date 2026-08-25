@@ -133,20 +133,28 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  // Filtrado de búsquedas
-  const filteredRoles = rolesList.filter(
-    (r) =>
+  // Filtrado de búsquedas (oculta super_admin a administradores estándar)
+  const filteredRoles = rolesList.filter((r) => {
+    if (!userIsSuperAdmin && r.code === UserRoleEnum.SUPER_ADMIN) {
+      return false;
+    }
+    return (
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+    );
+  });
 
-  const filteredUsers = usersList.filter(
-    (u) =>
+  const filteredUsers = usersList.filter((u) => {
+    if (!userIsSuperAdmin && u.role === UserRoleEnum.SUPER_ADMIN) {
+      return false;
+    }
+    return (
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (u.full_name && u.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       u.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    );
+  });
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col justify-between">
@@ -275,9 +283,7 @@ export const AdminPage: React.FC = () => {
                   <Tag className="w-4 h-4 text-purple-400" />
                   <span>Catálogo de Roles Registrados en la Base de Datos</span>
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                  Tabla <code className="text-purple-400 font-mono">public.turismo_roles</code> en Supabase
-                </p>
+
               </div>
 
               <button
@@ -356,9 +362,7 @@ export const AdminPage: React.FC = () => {
                 <Users className="w-4 h-4 text-purple-400" />
                 <span>Asignación de Roles a Usuarios Registrados</span>
               </h3>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                Tabla <code className="text-purple-400 font-mono">public.turismo_profiles</code> en Supabase
-              </p>
+
             </div>
 
             <div className="rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] overflow-hidden shadow-xl">
