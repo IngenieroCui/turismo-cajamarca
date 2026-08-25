@@ -207,7 +207,7 @@ export const AdminPage: React.FC = () => {
               }`}
             >
               <Tag className="w-4 h-4" />
-              <span>Catálogo de Roles ({rolesList.length})</span>
+              <span>Catálogo de Roles ({filteredRoles.length})</span>
             </button>
 
             <button
@@ -219,7 +219,7 @@ export const AdminPage: React.FC = () => {
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>Usuarios Registrados ({usersList.length})</span>
+              <span>Usuarios Registrados ({filteredUsers.length})</span>
             </button>
           </div>
 

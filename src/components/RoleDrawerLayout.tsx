@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../context/useAuthStore';
-import { ROLE_METADATA, type UserRole } from '../types/auth.types';
+import { ROLE_METADATA, UserRoleEnum, type UserRole } from '../types/auth.types';
 import { ProfileManagementView } from './profile/ProfileManagementView';
+import { RevisionRolesView } from './admin/RevisionRolesView';
 import { Footer } from '../Footer';
 import {
   Menu,
@@ -11,6 +12,7 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 
 interface RoleDrawerLayoutProps {
@@ -20,12 +22,13 @@ interface RoleDrawerLayoutProps {
 export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) => {
   const { user, profile, logout } = useAuthStore();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'perfil'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'revision_roles' | 'perfil'>('dashboard');
 
   const currentRole: UserRole = profile?.role || 'turista';
   const roleMeta = ROLE_METADATA[currentRole];
+  const isAdminOrSuperAdmin = currentRole === UserRoleEnum.ADMIN || currentRole === UserRoleEnum.SUPER_ADMIN;
 
-  const handleSelectTab = (tab: 'dashboard' | 'perfil') => {
+  const handleSelectTab = (tab: 'dashboard' | 'revision_roles' | 'perfil') => {
     setActiveTab(tab);
     setIsDrawerOpen(false);
   };
@@ -101,6 +104,23 @@ export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) 
               <ChevronRight className="w-4 h-4 opacity-70" />
             </button>
 
+            {/* OPCIÓN REVISIÓN DE ROLES EN DRAWER PARA ADMIN Y SUPER ADMIN */}
+            {isAdminOrSuperAdmin && (
+              <button
+                onClick={() => handleSelectTab('revision_roles')}
+                className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center justify-between border ${activeTab === 'revision_roles'
+                    ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
+                    : 'bg-transparent text-[var(--text-secondary)] border-transparent hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]'
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-4 h-4" />
+                  <span>Revisión de Roles</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-70" />
+              </button>
+            )}
+
             <button
               onClick={() => handleSelectTab('perfil')}
               className={`w-full px-4 py-3 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center justify-between border ${activeTab === 'perfil'
@@ -146,7 +166,7 @@ export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) 
               <h1 className="text-sm sm:text-base font-bold text-[var(--text-primary)] my-0 leading-tight flex items-center gap-1.5">
                 Turismo Cajamarca
                 <span className="text-xs text-[var(--text-muted)] font-normal hidden md:inline">
-                  • {activeTab === 'dashboard' ? 'Panel de Control' : 'Autogestión de Perfil'}
+                  • {activeTab === 'dashboard' ? 'Panel de Control' : activeTab === 'revision_roles' ? 'Revisión de Roles' : 'Autogestión de Perfil'}
                 </span>
               </h1>
             </div>
@@ -174,7 +194,13 @@ export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) 
 
       {/* ÁREA DE CONTENIDO */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
-        {activeTab === 'dashboard' ? children : <ProfileManagementView />}
+        {activeTab === 'dashboard' ? (
+          children
+        ) : activeTab === 'revision_roles' ? (
+          <RevisionRolesView isSuperAdmin={currentRole === UserRoleEnum.SUPER_ADMIN} />
+        ) : (
+          <ProfileManagementView />
+        )}
       </main>
 
       <Footer />
