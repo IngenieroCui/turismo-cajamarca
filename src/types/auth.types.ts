@@ -101,6 +101,58 @@ export interface UserProfile {
   preferred_language?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
+
+  // Extensión para Prestador
+  ruc?: string | null;
+  razon_social?: string | null;
+  nombre_comercial?: string | null;
+  rnt_status?: 'verificado' | 'pendiente' | 'vencido' | 'sin_rnt' | null;
+  address?: string | null;
+  website_url?: string | null;
+
+  // Extensión para Moderador
+  specialty_area?: string | null;
+  assigned_categories?: string[];
+  moderation_level?: string | null;
+  daily_quota?: number;
+
+  // Extensión para Auditor
+  audit_certification_id?: string | null;
+  institutional_scope?: string | null;
+  security_clearance_level?: string | null;
+
+  // Extensión para Soporte
+  support_level?: string | null;
+  assigned_queue?: string | null;
+  max_refund_limit?: number;
+  shift_hours?: string | null;
+
+  // Extensión para Analista
+  bi_tool?: string | null;
+  dataset_access_scope?: string | null;
+  export_format_permission?: boolean;
+
+  // Extensión para DevOps
+  git_handle?: string | null;
+  environment_access?: string | null;
+  public_ssh_fingerprint?: string | null;
+
+  // Extensión para Servicio IA
+  service_name?: string | null;
+  model_version?: string | null;
+  daily_token_quota?: number;
+  endpoint_url?: string | null;
+
+  // Extensión para Reguladores (MinCIT / Cámara de Comercio)
+  entity_type?: 'MINCIT' | 'FONTUR' | 'DIRCETUR' | 'CAMARA_COMERCIO' | null;
+  institutional_id?: string | null;
+  jurisdiction_scope?: string | null;
+
+  // Extensión para Afiliados / Embajadores
+  referral_code?: string | null;
+  commission_rate?: number;
+  payout_method?: 'yape' | 'plin' | 'cci' | 'transferencia' | null;
+  total_earnings?: number;
 }
 
 /**
