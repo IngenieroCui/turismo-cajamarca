@@ -189,7 +189,7 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
               </span>
             </h3>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5 my-0">
-              {meta.description} (Carpeta: <code className="text-purple-400">src/pages/{meta.folderName}</code>)
+              {meta.description}
             </p>
           </div>
 
@@ -263,7 +263,9 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
                 <tr className="border-b border-[var(--border-light)] bg-[var(--bg-primary)] text-[var(--text-muted)] uppercase tracking-wider font-extrabold text-[11px]">
                   <th className="p-4">Usuario / Email</th>
                   <th className="p-4">Documento / Teléfono</th>
-                  <th className="p-4">Estado & Registro</th>
+                  <th className="p-4">Rol Actual</th>
+                  <th className="p-4">Estado del Rol</th>
+                  <th className="p-4">Estado Cuenta & Fecha</th>
                   <RoleHeaderColumns role={selectedRole} />
                   <th className="p-4 text-right">Acciones / Detalle</th>
                 </tr>
@@ -273,6 +275,7 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
                   const isExpanded = expandedRowId === p.id;
                   const isProtected = p.role === UserRoleEnum.ADMIN || p.role === UserRoleEnum.SUPER_ADMIN;
                   const canModify = isSuperAdmin || !isProtected;
+                  const isRoleActiveInThisTable = p.role === selectedRole;
 
                   return (
                     <React.Fragment key={p.id}>
@@ -304,6 +307,31 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
                           </div>
                         </td>
 
+                        {/* ROL ACTUAL DE USUARIO */}
+                        <td className="p-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border font-mono ${ROLE_METADATA[p.role]?.badgeColor || 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                              }`}
+                          >
+                            {ROLE_METADATA[p.role]?.label || p.role}
+                          </span>
+                        </td>
+
+                        {/* ESTADO DEL ROL EN ESTA TABLA */}
+                        <td className="p-4">
+                          {isRoleActiveInThisTable ? (
+                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-extrabold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30 flex items-center gap-1.5 w-fit shadow-sm">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Rol Activo
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold border bg-amber-500/10 text-amber-400 border-amber-500/30 flex items-center gap-1.5 w-fit">
+                              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                              Rol Inactivo
+                            </span>
+                          )}
+                        </td>
+
                         {/* ESTADO ACTIVO Y REGISTRO */}
                         <td className="p-4 space-y-1">
                           <div className="flex items-center gap-2">
@@ -313,7 +341,7 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
                                 : 'bg-red-500/10 text-red-400 border-red-500/20'
                                 }`}
                             >
-                              {p.is_active ? 'Activo' : 'Inactivo'}
+                              {p.is_active ? 'Cuenta Activa' : 'Cuenta Inactiva'}
                             </span>
                             <span
                               className={`text-[10px] font-bold ${p.is_verified ? 'text-emerald-400' : 'text-amber-400'
@@ -358,7 +386,7 @@ export const RevisionRolesView: React.FC<RevisionRolesViewProps> = ({ isSuperAdm
                       {/* FILA EXPANDIDA CON DETALLES Y JSON COMPLETO */}
                       {isExpanded && (
                         <tr className="bg-slate-950/80 border-b border-[var(--border-light)]">
-                          <td colSpan={6} className="p-4 space-y-3">
+                          <td colSpan={8} className="p-4 space-y-3">
                             <div className="flex items-center justify-between text-xs text-purple-400 font-bold border-b border-slate-800 pb-2">
                               <span className="flex items-center gap-1.5">
                                 <FileText className="w-4 h-4" />

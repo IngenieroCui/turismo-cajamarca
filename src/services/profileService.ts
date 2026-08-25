@@ -182,31 +182,29 @@ export const updateUserRoleProfile = async (
 };
 
 /**
- * Obtener todos los perfiles completos registrados bajo un rol específico.
- * Une la tabla `turismo_profiles` con su respectiva tabla de extensión según el rol.
+ * Obtener todos los perfiles registrados bajo la tabla específica de un rol.
+ * Si un usuario tiene un registro en la tabla de extensión del rol (o su profile.role coincide),
+ * se retorna su perfil unificado para inspección de historial y estado activo/inactivo del rol.
  */
 export const getFullProfilesByRole = async (role: UserRole): Promise<UserProfile[]> => {
   try {
-    const { data: baseProfiles, error } = await supabase
-      .from('turismo_profiles')
-      .select('*')
-      .eq('role', role)
-      .order('created_at', { ascending: false });
-
-    if (error || !baseProfiles || baseProfiles.length === 0) {
-      return [];
-    }
-
-    const profileIds = baseProfiles.map((p) => p.id);
+    let profileIdsFromExtension: string[] = [];
     let extensionMap: Record<string, Record<string, unknown>> = {};
 
+    // 1. Consultar la tabla de extensión específica del rol para obtener todos sus registros
     if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
-      const { data } = await supabase.from('turismo_tourist_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
-    } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
-      const { data } = await supabase.from('turismo_provider_profiles').select('*').in('profile_id', profileIds);
+      const { data } = await supabase.from('turismo_tourist_profiles').select('*');
       if (data) {
         data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
+    } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
+      const { data } = await supabase.from('turismo_provider_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
           extensionMap[row.profile_id] = {
             ...row,
             sub_role: row.sub_type,
@@ -214,29 +212,93 @@ export const getFullProfilesByRole = async (role: UserRole): Promise<UserProfile
         });
       }
     } else if (role === UserRoleEnum.MODERADOR) {
-      const { data } = await supabase.from('turismo_moderator_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_moderator_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.AUDITOR) {
-      const { data } = await supabase.from('turismo_auditor_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_auditor_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.SOPORTE) {
-      const { data } = await supabase.from('turismo_support_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_support_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.ANALISTA_DATOS) {
-      const { data } = await supabase.from('turismo_analyst_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_analyst_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.DESARROLLADOR) {
-      const { data } = await supabase.from('turismo_devops_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_devops_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.SERVICIOS_IA) {
-      const { data } = await supabase.from('turismo_ai_service_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_ai_service_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const { data } = await supabase.from('turismo_regulatory_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_regulatory_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
     } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
-      const { data } = await supabase.from('turismo_affiliate_profiles').select('*').in('profile_id', profileIds);
-      if (data) data.forEach((row) => (extensionMap[row.profile_id] = row));
+      const { data } = await supabase.from('turismo_affiliate_profiles').select('*');
+      if (data) {
+        data.forEach((row) => {
+          profileIdsFromExtension.push(row.profile_id);
+          extensionMap[row.profile_id] = row;
+        });
+      }
+    }
+
+    // 2. También incluir cualquier usuario cuyo turismo_profiles.role === role
+    const { data: baseProfilesWithRole } = await supabase
+      .from('turismo_profiles')
+      .select('id')
+      .eq('role', role);
+
+    const baseRoleIds = (baseProfilesWithRole || []).map((p) => p.id);
+    const allUniqueIds = Array.from(new Set([...profileIdsFromExtension, ...baseRoleIds]));
+
+    if (allUniqueIds.length === 0) {
+      return [];
+    }
+
+    // 3. Obtener el perfil base de todos los IDs únicos encontrados
+    const { data: baseProfiles, error: baseErr } = await supabase
+      .from('turismo_profiles')
+      .select('*')
+      .in('id', allUniqueIds)
+      .order('created_at', { ascending: false });
+
+    if (baseErr || !baseProfiles) {
+      return [];
     }
 
     return baseProfiles.map((base) => ({
