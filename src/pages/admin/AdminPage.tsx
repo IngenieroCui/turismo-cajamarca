@@ -19,7 +19,6 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  Sparkles,
   RefreshCw,
   X,
   UserCheck,
@@ -169,9 +168,6 @@ export const AdminPage: React.FC = () => {
               <h1 className="text-base font-bold text-[var(--text-primary)] my-0 leading-tight">
                 Turismo Cajamarca
               </h1>
-              <p className="text-[10px] text-purple-400 font-semibold flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Panel del Administrador (turismo_roles)
-              </p>
             </div>
           </div>
           <button
@@ -196,9 +192,7 @@ export const AdminPage: React.FC = () => {
                 {meta.label}
               </span>
             </div>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Gestión dinámica de la tabla <code className="text-purple-400 font-mono">turismo_roles</code> y asignación de permisos a usuarios.
-            </p>
+
           </div>
 
           <button
