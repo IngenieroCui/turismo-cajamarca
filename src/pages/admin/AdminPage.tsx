@@ -28,7 +28,8 @@ import {
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
-  const { profile, logout } = useAuthStore();
+  const { profile, logout, isSuperAdmin } = useAuthStore();
+  const userIsSuperAdmin = isSuperAdmin();
   const meta = ROLE_METADATA[UserRoleEnum.ADMIN];
 
   const [activeTab, setActiveTab] = useState<'roles' | 'usuarios'>('roles');
@@ -112,6 +113,14 @@ export const AdminPage: React.FC = () => {
   };
 
   const handleChangeUserRole = async (userId: string, userEmail: string, newRoleCode: string) => {
+    if (!userIsSuperAdmin && (newRoleCode === UserRoleEnum.ADMIN || newRoleCode === UserRoleEnum.SUPER_ADMIN)) {
+      setStatusMessage({
+        type: 'error',
+        text: 'No tienes permisos para asignar el rol de Administrador o Super Administrador.',
+      });
+      return;
+    }
+
     const res = await updateUserProfileRole(userId, newRoleCode);
     if (res.success) {
       setStatusMessage({
@@ -197,11 +206,10 @@ export const AdminPage: React.FC = () => {
         {/* NOTIFICACIÓN FLASH DE ÉXITO O ERROR */}
         {statusMessage && (
           <div
-            className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between transition ${
-              statusMessage.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-red-500/10 border-red-500/30 text-red-300'
-            }`}
+            className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between transition ${statusMessage.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-red-500/10 border-red-500/30 text-red-300'
+              }`}
           >
             <span>{statusMessage.text}</span>
             <button
@@ -218,14 +226,13 @@ export const AdminPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('roles')}
-              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-2 border ${
-                activeTab === 'roles'
-                  ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-light)] hover:border-purple-400/40'
-              }`}
+              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-2 border ${activeTab === 'roles'
+                ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-light)] hover:border-purple-400/40'
+                }`}
             >
               <Tag className="w-4 h-4" />
-              <span>Gestión de Roles (`turismo_roles`)</span>
+              <span>Gestión de Roles</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/40 text-purple-200">
                 {rolesList.length}
               </span>
@@ -233,14 +240,13 @@ export const AdminPage: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('usuarios')}
-              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-2 border ${
-                activeTab === 'usuarios'
-                  ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-light)] hover:border-purple-400/40'
-              }`}
+              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-2 border ${activeTab === 'usuarios'
+                ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/20'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-light)] hover:border-purple-400/40'
+                }`}
             >
               <Users className="w-4 h-4" />
-              <span>Gestión de Usuarios (`turismo_profiles`)</span>
+              <span>Gestión de Usuarios</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/40 text-purple-200">
                 {usersList.length}
               </span>
@@ -325,11 +331,10 @@ export const AdminPage: React.FC = () => {
                         <td className="p-4 text-right">
                           <button
                             onClick={() => handleToggleStatus(roleItem.id, roleItem.is_active, roleItem.name)}
-                            className={`px-3 py-1 rounded-xl text-[11px] font-bold transition cursor-pointer border ${
-                              roleItem.is_active
-                                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
-                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
-                            }`}
+                            className={`px-3 py-1 rounded-xl text-[11px] font-bold transition cursor-pointer border ${roleItem.is_active
+                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20'
+                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                              }`}
                           >
                             {roleItem.is_active ? 'Desactivar' : 'Activar'}
                           </button>
@@ -368,33 +373,51 @@ export const AdminPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-light)] text-[var(--text-primary)]">
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-[var(--bg-primary)]/40 transition">
-                        <td className="p-4 font-bold flex items-center gap-2">
-                          <UserCheck className="w-4 h-4 text-purple-400" />
-                          <span>{u.full_name || 'Sin Nombre'}</span>
-                        </td>
-                        <td className="p-4 text-[var(--text-secondary)]">{u.email}</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono">
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleChangeUserRole(u.id, u.email, e.target.value)}
-                            className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-purple-400 transition cursor-pointer"
-                          >
-                            {rolesList.map((r) => (
-                              <option key={r.code} value={r.code}>
-                                {r.name} ({r.code})
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredUsers.map((u) => {
+                      const isTargetAdmin = u.role === UserRoleEnum.ADMIN || u.role === UserRoleEnum.SUPER_ADMIN;
+
+                      // Filtrar opciones de roles: Si no es Super Admin, no mostrar 'admin' ni 'super_admin' como opción asignable
+                      const availableRoles = rolesList.filter((r) => {
+                        if (!userIsSuperAdmin && (r.code === UserRoleEnum.ADMIN || r.code === UserRoleEnum.SUPER_ADMIN)) {
+                          return false;
+                        }
+                        return true;
+                      });
+
+                      return (
+                        <tr key={u.id} className="hover:bg-[var(--bg-primary)]/40 transition">
+                          <td className="p-4 font-bold flex items-center gap-2">
+                            <UserCheck className="w-4 h-4 text-purple-400" />
+                            <span>{u.full_name || 'Sin Nombre'}</span>
+                          </td>
+                          <td className="p-4 text-[var(--text-secondary)]">{u.email}</td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono">
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            {!userIsSuperAdmin && isTargetAdmin ? (
+                              <span className="px-3 py-1.5 rounded-xl text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 inline-flex items-center gap-1 font-mono">
+                                Rol Protegido
+                              </span>
+                            ) : (
+                              <select
+                                value={u.role}
+                                onChange={(e) => handleChangeUserRole(u.id, u.email, e.target.value)}
+                                className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-purple-400 transition cursor-pointer"
+                              >
+                                {availableRoles.map((r) => (
+                                  <option key={r.code} value={r.code}>
+                                    {r.name} ({r.code})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
