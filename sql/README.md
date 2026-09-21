@@ -3,12 +3,14 @@
 ## Ejecucion
 
 - Base nueva: ejecutar `00_master_schema_all_in_one.sql`.
-- Base existente: ejecutar `08_refactor_rbac_multi_role.sql`, `09_core_tourism_marketplace.sql`, `10_platform_operations_growth.sql`, `11_experience_intelligence_engagement.sql`, `12_platform_functional_closure.sql` y `13_stabilization_data_integrity.sql`, en ese orden.
+- Base existente: ejecutar `08_refactor_rbac_multi_role.sql`, `09_core_tourism_marketplace.sql`, `10_platform_operations_growth.sql`, `11_experience_intelligence_engagement.sql`, `12_platform_functional_closure.sql`, `13_stabilization_data_integrity.sql` y `14_default_user_role_and_role_switching.sql`, en ese orden.
 - `00_master_schema_all_in_one.sql` incorpora las fases 11, 12 y 13; no ejecutes esas migraciones dos veces sobre una base nueva.
 
 Los scripts 01-07 se conservan como historial incremental; no deben usarse para reconstruir una base nueva.
 
 La migración 13 es la fase final de estabilización y corrige integridad de datos, ciclo de comisiones, scoping de colaboradores, banderas, auditoría, salud de plataforma y privilegios de privacidad.
+
+La migración 14 cambia el alta de nuevas cuentas al rol base `usuario`, evita crear extensiones de turista durante el registro y centraliza la inicialización de extensiones al asignar roles. Las cuentas existentes conservan sus asignaciones.
 
 ## Autorizacion
 

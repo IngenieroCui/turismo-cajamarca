@@ -84,12 +84,12 @@ export const App: React.FC = () => {
         <Route path="/dashboard" element={user ? <Navigate to={userDefaultRoute} replace /> : <Navigate to="/login" replace />} />
 
         {/* Rutas Protegidas por Rol */}
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO, UserRoleEnum.TURISTA]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.USUARIO]} allowEmptyHumanRoles />}>
           <Route path="/usuario" element={<UsuarioPage />} />
         </Route>
 
         {/* MÓDULO TURISTA CON LAYOUT & DRAWER MENU */}
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA, UserRoleEnum.USUARIO]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA]} />}>
           <Route path="/turista" element={<TouristLayout />}>
             <Route index element={<TuristaPage />} />
             <Route path="perfil" element={<TouristProfilePage />} />

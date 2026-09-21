@@ -83,8 +83,8 @@ export const ProfileManagementView: React.FC = () => {
   const [referralCode, setReferralCode] = useState('');
   const [payoutMethod, setPayoutMethod] = useState<'nequi' | 'daviplata' | 'transferencia' | 'yape' | 'plin' | 'cci'>('transferencia');
 
-  const currentRole: UserRole = activeRole || (profile?.roles.find((role) => role.is_primary)?.code as UserRole) || 'turista';
-  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.turista;
+  const currentRole: UserRole = activeRole || (profile?.roles.find((role) => role.is_primary)?.code as UserRole) || 'usuario';
+  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.usuario;
   const specializedReadOnly = ['moderador', 'auditor', 'soporte', 'analista_datos', 'desarrollador', 'funcionario_mincit', 'camara_comercio', 'servicios_ia'].includes(currentRole);
 
   const loadProfileData = async () => {
@@ -167,7 +167,7 @@ export const ProfileManagementView: React.FC = () => {
     // Preparar objeto de campos específicos según el rol
     const specificFields: Record<string, unknown> = {};
 
-    if (currentRole === 'turista' || currentRole === 'usuario') {
+    if (currentRole === 'turista') {
       specificFields.country_of_origin = countryOfOrigin;
       specificFields.nationality = nationality;
       specificFields.preferred_language = preferredLang;
@@ -388,7 +388,7 @@ export const ProfileManagementView: React.FC = () => {
           </h3>
 
           {/* DERECHO AUTOGESTIÓN TURISTA */}
-          {(currentRole === 'turista' || currentRole === 'usuario') && (
+          {currentRole === 'turista' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label htmlFor="profile-country" className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>

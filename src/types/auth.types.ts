@@ -186,7 +186,7 @@ export const ROLE_METADATA: Record<UserRole, RoleMetaData> = {
   [UserRoleEnum.USUARIO]: {
     role: UserRoleEnum.USUARIO,
     label: 'Usuario',
-    description: 'Rol legado de compatibilidad con cuentas creadas en versiones anteriores.',
+    description: 'Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.',
     badgeColor: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
     folderName: 'usuario',
   },
@@ -301,7 +301,7 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
- * Esquema Zod para Registro de Usuario (Por defecto: rol turista)
+ * Esquema Zod para Registro de Usuario. El rol base lo decide el trigger de Auth.
  */
 export const signUpSchema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido.'),
@@ -311,11 +311,6 @@ export const signUpSchema = z.object({
   phone: z.string().optional(),
   documentType: z.enum(['DNI', 'RUC', 'PASAPORTE', 'CE']).default('DNI'),
   documentNumber: z.string().optional(),
-  countryOfOrigin: z.string().optional(),
-  nationality: z.string().optional(),
-  preferredLanguage: z.string().optional(),
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden.',
   path: ['confirmPassword'],

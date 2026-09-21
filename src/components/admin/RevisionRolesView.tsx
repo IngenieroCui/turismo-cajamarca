@@ -282,7 +282,7 @@ export const RevisionRolesView: React.FC<Props> = ({
                                   key={role.id}
                                   className={`px-2 py-1 rounded-lg border text-[10px] ${role.badge_color}`}
                                 >
-                                  {role.name}
+                                  {role.name}{role.is_primary ? " · Principal" : ""}
                                 </span>
                               ))}
                             </div>

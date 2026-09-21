@@ -43,8 +43,8 @@ export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) 
     activeRole && isDashboardRole(activeRole)
       ? activeRole
       : (profile?.roles.find((role) => role.is_primary && isDashboardRole(role.code))?.code as UserRole ||
-        'turista');
-  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.turista;
+        'usuario');
+  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.usuario;
   const isAdminOrSuperAdmin =
     currentRole === UserRoleEnum.ADMIN || currentRole === UserRoleEnum.SUPER_ADMIN;
 

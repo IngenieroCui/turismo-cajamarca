@@ -140,6 +140,32 @@ export const getAllUsersProfiles = async (): Promise<UserProfileItem[]> => {
   }));
 };
 
+export const getUserRoleAssignments = async (userId: string): Promise<AssignedRole[]> => {
+  const { data: assignments, error: assignmentError } = await supabase
+    .from('turismo_user_roles')
+    .select('role_id, is_active, is_primary')
+    .eq('user_id', userId)
+    .eq('is_active', true);
+  if (assignmentError) throw databaseError('cargar las asignaciones del usuario', assignmentError);
+
+  const roleIds = Array.from(new Set((assignments || []).map((assignment) => assignment.role_id)));
+  if (!roleIds.length) return [];
+  const { data: roles, error: roleError } = await supabase
+    .from('turismo_roles')
+    .select('*')
+    .in('id', roleIds);
+  if (roleError) throw databaseError('cargar las definiciones de roles del usuario', roleError);
+  if (!roles) return [];
+
+  const roleMap = new Map(roles.map((role) => [role.id, role as TurismoRoleItem]));
+  return (assignments || [])
+    .map((assignment) => {
+      const role = roleMap.get(assignment.role_id);
+      return role ? { ...role, is_primary: assignment.is_primary } : null;
+    })
+    .filter((role): role is AssignedRole => Boolean(role));
+};
+
 const rpcResult = async (name: string, args: Record<string, unknown>) => {
   const { error } = await supabase.rpc(name, args);
   return error ? { success: false, error: error.message } : { success: true };

@@ -103,7 +103,7 @@ CREATE TABLE public.turismo_user_roles (
 CREATE UNIQUE INDEX turismo_one_primary_role_per_user ON public.turismo_user_roles(user_id) WHERE is_primary AND is_active;
 
 INSERT INTO public.turismo_roles(code,name,description,badge_color,folder_name,is_protected,is_system) VALUES
- ('usuario','Usuario General','Rol base para usuarios de la plataforma.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
+ ('usuario','Usuario General','Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
  ('turista','Turista','Viajeros y consumidores finales de experiencias turísticas.','bg-blue-500/10 text-blue-400 border-blue-500/20','turista',false,false),
  ('prestador_turistico','Prestador Turístico','Empresas, guías, hoteles y operadores turísticos.','bg-emerald-500/10 text-emerald-400 border-emerald-500/20','prestador_turistico',false,false),
  ('admin','Administrador','Operación diaria de la plataforma y usuarios.','bg-purple-500/10 text-purple-400 border-purple-500/20','admin',true,false),
@@ -121,7 +121,7 @@ INSERT INTO public.turismo_roles(code,name,description,badge_color,folder_name,i
 INSERT INTO public.turismo_permissions(code,name,description,module) VALUES
  ('*','Acceso global','Acceso global de Super Administrador.','platform'),('platform:read','Consultar plataforma','Consultar configuración y estado de la plataforma.','platform'),('platform:write','Operar plataforma','Ejecutar operaciones de plataforma.','platform'),('platform:config','Configurar plataforma','Modificar configuración de plataforma.','platform'),('users:manage','Gestionar usuarios','Administrar estado y roles de usuarios.','users'),('roles:manage','Gestionar permisos','Administrar permisos heredados por los roles.','roles'),('content:moderate','Moderar contenido','Revisar contenido reportado.','content'),('content:approve','Aprobar contenido','Aprobar contenido turístico.','content'),('content:reject','Rechazar contenido','Rechazar contenido turístico.','content'),('provider:catalog_manage','Gestionar catálogo','Administrar información del catálogo.','provider'),('provider:offers_manage','Gestionar ofertas','Administrar ofertas del prestador.','provider'),('provider:bookings_view','Consultar reservas','Consultar reservas del prestador.','provider'),('provider:finances_view','Consultar finanzas','Consultar información financiera.','provider'),('tourist:book','Reservar experiencias','Crear reservas turísticas.','tourist'),('tourist:review','Publicar reseñas','Publicar reseñas turísticas.','tourist'),('tourist:profile','Gestionar perfil','Gestionar datos personales turísticos.','tourist'),('audit:logs_read','Leer auditoría','Consultar bitácoras de auditoría.','audit'),('audit:blockchain_read','Leer integridad','Consultar evidencias de integridad.','audit'),('support:tickets_manage','Gestionar soporte','Atender solicitudes de soporte.','support'),('support:refund_issue','Emitir reembolsos','Emitir reembolsos autorizados.','support'),('bi:analytics_read','Leer analítica','Consultar analítica agregada.','bi'),('bi:reports_export','Exportar informes','Exportar informes de negocio.','bi'),('ai:recommendations_read','Consultar recomendaciones','Usar recomendaciones de IA.','ai'),('ai:embeddings_write','Escribir embeddings','Escribir embeddings de servicio.','ai'),('devops:infra_manage','Gestionar infraestructura','Administrar infraestructura técnica.','devops'),('ambassador:referral_manage','Gestionar referidos','Administrar campañas de referidos.','ambassador'),('ambassador:commissions_view','Consultar comisiones','Consultar comisiones de referidos.','ambassador'),('regulatory:rnt_verify','Verificar RNT','Verificar registros turísticos.','regulatory'),('regulatory:compliance_report','Reportar cumplimiento','Emitir informes regulatorios.','regulatory');
 INSERT INTO public.turismo_role_permissions(role_id,permission_code) SELECT r.id,x.permission_code FROM (VALUES
- ('super_admin','*'),('admin','platform:read'),('admin','platform:config'),('admin','users:manage'),('admin','roles:manage'),('admin','content:moderate'),('admin','content:approve'),('admin','content:reject'),('admin','support:tickets_manage'),('moderador','content:moderate'),('moderador','content:approve'),('moderador','content:reject'),('prestador_turistico','provider:catalog_manage'),('prestador_turistico','provider:offers_manage'),('prestador_turistico','provider:bookings_view'),('prestador_turistico','provider:finances_view'),('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),('usuario','tourist:book'),('usuario','tourist:review'),('usuario','tourist:profile'),('auditor','audit:logs_read'),('auditor','audit:blockchain_read'),('soporte','support:tickets_manage'),('soporte','support:refund_issue'),('analista_datos','bi:analytics_read'),('analista_datos','bi:reports_export'),('desarrollador','devops:infra_manage'),('servicios_ia','ai:recommendations_read'),('servicios_ia','ai:embeddings_write'),('embajador','tourist:profile'),('embajador','tourist:book'),('embajador','tourist:review'),('embajador','ambassador:referral_manage'),('embajador','ambassador:commissions_view'),('afiliado','tourist:profile'),('afiliado','tourist:book'),('afiliado','tourist:review'),('afiliado','ambassador:referral_manage'),('afiliado','ambassador:commissions_view'),('funcionario_mincit','regulatory:rnt_verify'),('funcionario_mincit','regulatory:compliance_report'),('camara_comercio','regulatory:rnt_verify'),('camara_comercio','regulatory:compliance_report')) x(role_code,permission_code) JOIN public.turismo_roles r ON r.code=x.role_code;
+ ('super_admin','*'),('admin','platform:read'),('admin','platform:config'),('admin','users:manage'),('admin','roles:manage'),('admin','content:moderate'),('admin','content:approve'),('admin','content:reject'),('admin','support:tickets_manage'),('moderador','content:moderate'),('moderador','content:approve'),('moderador','content:reject'),('prestador_turistico','provider:catalog_manage'),('prestador_turistico','provider:offers_manage'),('prestador_turistico','provider:bookings_view'),('prestador_turistico','provider:finances_view'),('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),('auditor','audit:logs_read'),('auditor','audit:blockchain_read'),('soporte','support:tickets_manage'),('soporte','support:refund_issue'),('analista_datos','bi:analytics_read'),('analista_datos','bi:reports_export'),('desarrollador','devops:infra_manage'),('servicios_ia','ai:recommendations_read'),('servicios_ia','ai:embeddings_write'),('embajador','tourist:profile'),('embajador','tourist:book'),('embajador','tourist:review'),('embajador','ambassador:referral_manage'),('embajador','ambassador:commissions_view'),('afiliado','tourist:profile'),('afiliado','tourist:book'),('afiliado','tourist:review'),('afiliado','ambassador:referral_manage'),('afiliado','ambassador:commissions_view'),('funcionario_mincit','regulatory:rnt_verify'),('funcionario_mincit','regulatory:compliance_report'),('camara_comercio','regulatory:rnt_verify'),('camara_comercio','regulatory:compliance_report')) x(role_code,permission_code) JOIN public.turismo_roles r ON r.code=x.role_code;
 
 CREATE OR REPLACE FUNCTION public.turismo_current_user_is_active()
 RETURNS BOOLEAN
@@ -159,7 +159,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.turismo_is_super_admin()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT public.turismo_current_user_has_role('super_admin'); $$;
 
-CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE turista_id UUID; BEGIN INSERT INTO turismo_profiles(id,email,full_name,phone,document_type,document_number) VALUES(NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',COALESCE((NEW.raw_user_meta_data->>'document_type')::turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number'); SELECT id INTO turista_id FROM turismo_roles WHERE code='turista' AND is_active; IF turista_id IS NULL THEN RAISE EXCEPTION 'El rol turista no está configurado'; END IF; INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES(NEW.id,turista_id,true,true); INSERT INTO turismo_tourist_profiles(profile_id,country_of_origin,nationality,preferred_language,emergency_contact_name,emergency_contact_phone) VALUES(NEW.id,COALESCE(NEW.raw_user_meta_data->>'country_of_origin','Colombia'),COALESCE(NEW.raw_user_meta_data->>'nationality','Colombiana'),COALESCE(NEW.raw_user_meta_data->>'preferred_language','es'),NEW.raw_user_meta_data->>'emergency_contact_name',NEW.raw_user_meta_data->>'emergency_contact_phone'); RETURN NEW; END; $$;
+CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE usuario_id UUID; BEGIN INSERT INTO turismo_profiles(id,email,full_name,phone,document_type,document_number) VALUES(NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',COALESCE((NEW.raw_user_meta_data->>'document_type')::turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number'); SELECT id INTO usuario_id FROM turismo_roles WHERE code='usuario' AND is_active; IF usuario_id IS NULL THEN RAISE EXCEPTION 'El rol base usuario no está configurado; no se puede crear la cuenta'; END IF; INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES(NEW.id,usuario_id,true,true); RETURN NEW; END; $$;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users; DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users; CREATE TRIGGER on_auth_user_created_turismo AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.turismo_handle_new_user();
 
 CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(p_user_id UUID,p_role_code TEXT,p_make_primary BOOLEAN DEFAULT FALSE)
@@ -184,7 +184,7 @@ BEGIN
   INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary,assigned_by) VALUES(p_user_id,target_role.id,TRUE,(p_make_primary OR active_count=0),auth.uid())
   ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=CASE WHEN p_make_primary OR active_count=0 THEN TRUE ELSE turismo_user_roles.is_primary END,assigned_by=auth.uid(),assigned_at=NOW();
 
-  IF p_role_code IN ('turista','usuario') THEN
+  IF p_role_code = 'turista' THEN
     INSERT INTO turismo_tourist_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
   ELSIF p_role_code='moderador' THEN
     INSERT INTO turismo_moderator_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
@@ -2799,3 +2799,104 @@ GRANT EXECUTE ON FUNCTION public.turismo_register_referral_visit(TEXT, TEXT, TEX
 
 INSERT INTO public.turismo_schema_version(version, migration_name) VALUES (13, '13_stabilization_data_integrity.sql') ON CONFLICT (version) DO NOTHING;
 COMMIT;
+
+-- Comportamiento final de cuenta base para instalaciones frescas.
+UPDATE public.turismo_roles SET description='Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.', is_active=TRUE, is_protected=FALSE, is_system=FALSE, updated_at=NOW() WHERE code='usuario';
+ALTER TABLE public.turismo_provider_profiles ALTER COLUMN ruc DROP NOT NULL;
+ALTER TABLE public.turismo_provider_profiles ALTER COLUMN razon_social DROP NOT NULL;
+ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN entity_type DROP NOT NULL;
+ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN institutional_id DROP NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.turismo_initialize_user_role_extension(p_user_id UUID,p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+  IF p_role_code='turista' THEN INSERT INTO turismo_tourist_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='prestador_turistico' THEN INSERT INTO turismo_provider_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='moderador' THEN INSERT INTO turismo_moderator_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='auditor' THEN INSERT INTO turismo_auditor_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='soporte' THEN INSERT INTO turismo_support_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='analista_datos' THEN INSERT INTO turismo_analyst_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code='desarrollador' THEN INSERT INTO turismo_devops_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code IN('funcionario_mincit','camara_comercio') THEN INSERT INTO turismo_regulatory_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
+  ELSIF p_role_code IN('embajador','afiliado') THEN INSERT INTO turismo_affiliate_profiles(profile_id,referral_code) VALUES(p_user_id,'CAJ-'||upper(substr(replace(p_user_id::TEXT,'-',''),1,12))) ON CONFLICT(profile_id) DO NOTHING;
+  END IF;
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE base_role_id UUID;
+BEGIN
+  INSERT INTO turismo_profiles(id,email,full_name,phone,document_type,document_number)
+  VALUES(NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',COALESCE((NEW.raw_user_meta_data->>'document_type')::turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number')
+  ON CONFLICT(id) DO UPDATE SET email=EXCLUDED.email,full_name=COALESCE(EXCLUDED.full_name,turismo_profiles.full_name),phone=COALESCE(EXCLUDED.phone,turismo_profiles.phone);
+  SELECT id INTO base_role_id FROM turismo_roles WHERE code='usuario' AND is_active;
+  IF base_role_id IS NULL THEN RAISE EXCEPTION 'El rol base usuario no está configurado; no se puede crear la cuenta'; END IF;
+  INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES(NEW.id,base_role_id,TRUE,TRUE) ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=TRUE;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
+CREATE TRIGGER on_auth_user_created_turismo AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.turismo_handle_new_user();
+
+CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(p_user_id UUID,p_role_code TEXT,p_make_primary BOOLEAN DEFAULT FALSE)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE target_role turismo_roles%ROWTYPE; has_primary_human BOOLEAN; has_devops BOOLEAN; caller_is_super BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL OR NOT turismo_current_user_has_permission('users:manage') THEN RAISE EXCEPTION 'No tienes permiso para gestionar usuarios'; END IF;
+  SELECT * INTO target_role FROM turismo_roles WHERE code=p_role_code AND is_active;
+  IF NOT FOUND THEN RAISE EXCEPTION 'El rol no existe o está inactivo'; END IF;
+  IF target_role.is_system THEN RAISE EXCEPTION 'Los roles de sistema no se asignan a personas'; END IF;
+  caller_is_super:=turismo_is_super_admin();
+  IF target_role.is_protected AND NOT caller_is_super THEN RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos'; END IF;
+  IF NOT caller_is_super AND EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.is_protected) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
+  SELECT EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.code='desarrollador') INTO has_devops;
+  IF p_role_code='desarrollador' AND EXISTS(SELECT 1 FROM turismo_user_roles WHERE user_id=p_user_id AND is_active AND role_id<>target_role.id) THEN RAISE EXCEPTION 'DevOps debe permanecer aislado'; END IF;
+  IF has_devops AND p_role_code<>'desarrollador' THEN RAISE EXCEPTION 'DevOps no puede coexistir con roles de negocio'; END IF;
+  SELECT EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND ur.is_primary AND r.is_active AND NOT r.is_system) INTO has_primary_human;
+  IF p_make_primary OR NOT has_primary_human THEN UPDATE turismo_user_roles SET is_primary=FALSE WHERE user_id=p_user_id AND is_active; END IF;
+  INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary,assigned_by) VALUES(p_user_id,target_role.id,TRUE,(p_make_primary OR NOT has_primary_human),auth.uid())
+  ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=CASE WHEN p_make_primary OR NOT has_primary_human THEN TRUE ELSE turismo_user_roles.is_primary END,assigned_by=auth.uid(),assigned_at=NOW();
+  PERFORM turismo_initialize_user_role_extension(p_user_id,p_role_code);
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_primary_user_role(p_user_id UUID,p_role_code TEXT) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE rid UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT turismo_current_user_is_active() THEN RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva'; END IF;
+  IF p_user_id<>auth.uid() AND NOT turismo_current_user_has_permission('users:manage') THEN RAISE EXCEPTION 'No tienes permiso'; END IF;
+  SELECT r.id INTO rid FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.is_active AND NOT r.is_system AND r.code=p_role_code;
+  IF rid IS NULL THEN RAISE EXCEPTION 'El rol no está asignado activamente o es un rol de sistema'; END IF;
+  UPDATE turismo_user_roles SET is_primary=FALSE WHERE user_id=p_user_id AND is_active;
+  UPDATE turismo_user_roles SET is_primary=TRUE WHERE user_id=p_user_id AND role_id=rid;
+END; $$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_role_status(p_role_code TEXT,p_is_active BOOLEAN) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE rid UUID; target_user UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT turismo_is_super_admin() THEN RAISE EXCEPTION 'Solo Super Admin puede activar roles'; END IF;
+  SELECT id INTO rid FROM turismo_roles WHERE code=p_role_code;
+  IF rid IS NULL THEN RAISE EXCEPTION 'Rol no encontrado'; END IF;
+  IF p_role_code='super_admin' AND NOT p_is_active THEN RAISE EXCEPTION 'Super Admin no puede desactivarse'; END IF;
+  UPDATE turismo_roles SET is_active=p_is_active,updated_at=NOW() WHERE id=rid;
+  IF NOT p_is_active THEN
+    UPDATE turismo_user_roles SET is_primary=FALSE WHERE role_id=rid AND is_active;
+    FOR target_user IN SELECT DISTINCT ur.user_id FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.is_active AND r.is_active AND NOT r.is_system AND NOT EXISTS(SELECT 1 FROM turismo_user_roles cp JOIN turismo_roles cpr ON cpr.id=cp.role_id WHERE cp.user_id=ur.user_id AND cp.is_active AND cp.is_primary AND cpr.is_active AND NOT cpr.is_system)
+    LOOP UPDATE turismo_user_roles SET is_primary=TRUE WHERE user_id=target_user AND role_id=(SELECT fallback.role_id FROM turismo_user_roles fallback JOIN turismo_roles fr ON fr.id=fallback.role_id WHERE fallback.user_id=target_user AND fallback.is_active AND fr.is_active AND NOT fr.is_system ORDER BY fallback.assigned_at LIMIT 1); END LOOP;
+  END IF;
+END; $$;
+
+ALTER TABLE public.turismo_provider_profiles ALTER COLUMN ruc DROP NOT NULL;
+ALTER TABLE public.turismo_provider_profiles ALTER COLUMN razon_social DROP NOT NULL;
+ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN entity_type DROP NOT NULL;
+ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN institutional_id DROP NOT NULL;
+REVOKE ALL ON FUNCTION public.turismo_initialize_user_role_extension(UUID,TEXT) FROM PUBLIC,anon,authenticated;
+
+CREATE OR REPLACE FUNCTION public.turismo_update_own_provider_profile(p_ruc TEXT,p_razon_social TEXT,p_nombre_comercial TEXT,p_sub_type TEXT,p_org_role TEXT,p_rnt_number TEXT,p_address TEXT,p_latitude DOUBLE PRECISION,p_longitude DOUBLE PRECISION,p_website_url TEXT,p_social_links JSONB,p_specific_metadata JSONB)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT turismo_current_user_is_active() THEN RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva'; END IF;
+  IF NOT turismo_current_user_has_role('prestador_turistico') THEN RAISE EXCEPTION 'El usuario no tiene rol de Prestador Turístico'; END IF;
+  INSERT INTO turismo_provider_profiles(profile_id,ruc,razon_social,nombre_comercial,sub_type,org_role,rnt_number,address,latitude,longitude,website_url,social_links,specific_metadata)
+  VALUES(auth.uid(),NULLIF(TRIM(p_ruc),''),NULLIF(TRIM(p_razon_social),''),NULLIF(TRIM(p_nombre_comercial),''),CASE WHEN p_sub_type IS NULL OR p_sub_type='' THEN NULL ELSE p_sub_type::turismo_provider_sub_type_enum END,CASE WHEN p_org_role IS NULL OR p_org_role='' THEN 'dueno'::turismo_provider_org_role_enum ELSE p_org_role::turismo_provider_org_role_enum END,NULLIF(TRIM(p_rnt_number),''),NULLIF(TRIM(p_address),''),p_latitude,p_longitude,NULLIF(TRIM(p_website_url),''),COALESCE(p_social_links,'{}'),COALESCE(p_specific_metadata,'{}'))
+  ON CONFLICT(profile_id) DO UPDATE SET ruc=COALESCE(EXCLUDED.ruc,turismo_provider_profiles.ruc),razon_social=COALESCE(EXCLUDED.razon_social,turismo_provider_profiles.razon_social),nombre_comercial=EXCLUDED.nombre_comercial,sub_type=EXCLUDED.sub_type,org_role=EXCLUDED.org_role,rnt_number=EXCLUDED.rnt_number,address=EXCLUDED.address,latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,website_url=EXCLUDED.website_url,social_links=EXCLUDED.social_links,specific_metadata=EXCLUDED.specific_metadata,updated_at=NOW();
+END; $$;
+INSERT INTO public.turismo_schema_version(version,migration_name) VALUES (14,'14_default_user_role_and_role_switching.sql') ON CONFLICT (version) DO UPDATE SET migration_name=EXCLUDED.migration_name;

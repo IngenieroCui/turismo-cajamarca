@@ -1,6 +1,6 @@
 import { ROLE_METADATA, UserRoleEnum, type AssignedRole, type UserRole } from '../types/auth.types';
 
-export const ROLE_ROUTES: Partial<Record<UserRole, string>> = {
+export const ROLE_ROUTES: Record<string, string> = {
   usuario: '/usuario',
   turista: '/turista',
   prestador_turistico: '/prestador_turistico',
@@ -26,12 +26,12 @@ export const getRoleRoute = (code: string): string | null =>
 export const getDefaultRoleRoute = (roles?: AssignedRole[] | null): string => {
   const assigned = roles || [];
   const primary = assigned.find((role) => role.is_active && role.is_primary && isDashboardRole(role.code));
-  if (primary) return getRoleRoute(primary.code) || '/turista';
+  if (primary) return getRoleRoute(primary.code) || '/usuario';
 
   const firstKnown = assigned.find((role) => role.is_active && isDashboardRole(role.code));
-  if (firstKnown) return getRoleRoute(firstKnown.code) || '/turista';
+  if (firstKnown) return getRoleRoute(firstKnown.code) || '/usuario';
 
-  return '/turista';
+  return '/usuario';
 };
 
 export const getRoleLabel = (role: AssignedRole): string =>
