@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
-import { Menu, User, LogOut, Sparkles } from 'lucide-react';
+import { LogOut, Menu, Sparkles, User } from 'lucide-react';
+import NotificationBell from '../notifications/NotificationBell';
 
 interface TouristNavbarProps {
+  isDrawerOpen?: boolean;
   onOpenDrawer: () => void;
 }
 
-export const TouristNavbar: React.FC<TouristNavbarProps> = ({ onOpenDrawer }) => {
+export const TouristNavbar: React.FC<TouristNavbarProps> = ({
+  isDrawerOpen = false,
+  onOpenDrawer,
+}) => {
   const navigate = useNavigate();
   const { profile, logout } = useAuthStore();
-  const [logoPath, setLogoPath] = useState('/web/icon-192.png');
-
-  useEffect(() => {
-    setLogoPath(getPlatformLogo());
-  }, []);
+  const [logoPath] = useState(() => getPlatformLogo());
 
   const handleLogout = async () => {
     await logout();
@@ -23,62 +24,71 @@ export const TouristNavbar: React.FC<TouristNavbarProps> = ({ onOpenDrawer }) =>
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--bg-secondary)]/90 backdrop-blur-md border-b border-[var(--border-light)] shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        {/* LADO IZQUIERDO: BOTÓN HAMBURGUESA + LOGO */}
+    <header className="sticky top-0 z-40 border-b border-[var(--border-light)] bg-[var(--bg-secondary)]/90 shadow-lg backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
+            type="button"
+            aria-label="Abrir menú"
+            aria-controls="tourist-navigation-drawer"
+            aria-expanded={isDrawerOpen}
+            className="flex cursor-pointer items-center justify-center rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] p-2 text-[var(--text-primary)] transition hover:border-[var(--color-primary-light)]"
             onClick={onOpenDrawer}
-            className="p-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] hover:border-[var(--color-primary-light)] transition flex items-center justify-center cursor-pointer"
-            aria-label="Abrir Menú de Navegación"
-            title="Abrir Menú de Navegación"
+            title="Abrir menú"
           >
-            <Menu className="w-5 h-5 text-[var(--color-primary-light)]" />
+            <Menu className="h-5 w-5 text-[var(--color-primary-light)]" aria-hidden="true" />
           </button>
 
-          <Link to="/turista" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl overflow-hidden bg-transparent border border-[var(--border-light)] p-0.5 group-hover:scale-105 transition">
+          <Link to="/turista" className="group flex items-center gap-2.5">
+            <div className="h-9 w-9 overflow-hidden rounded-xl border border-[var(--border-light)] bg-transparent p-0.5 transition group-hover:scale-105">
               <img
                 src={logoPath}
                 alt="Turismo Cajamarca Logo"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/web/icon-192.png';
+                className="h-full w-full object-contain"
+                onError={(event) => {
+                  (event.target as HTMLImageElement).src = '/web/icon-192.png';
                 }}
               />
             </div>
             <div>
-              <h1 className="text-base font-bold text-[var(--text-primary)] my-0 leading-tight tracking-tight">
+              <h1 className="my-0 text-base font-bold leading-tight tracking-tight text-[var(--text-primary)]">
                 Turismo Cajamarca
               </h1>
-              <p className="text-[10px] text-[var(--color-primary-light)] font-semibold flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Modo Turista
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-[var(--color-primary-light)]">
+                <Sparkles className="h-3 w-3" aria-hidden="true" />
+                Modo Turista
               </p>
             </div>
           </Link>
         </div>
 
-        {/* LADO DERECHO: BOTÓN MI PERFIL + CERRAR SESIÓN */}
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <Link
             to="/turista/perfil"
-            className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] hover:border-[var(--color-primary-light)] text-[var(--text-primary)] transition flex items-center gap-2"
             title="Ver Mi Perfil"
+            className="flex items-center gap-2 rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] px-3 py-1.5 text-[var(--text-primary)] transition hover:border-[var(--color-primary-light)]"
           >
-            <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary-light)] flex items-center justify-center text-xs font-bold">
-              {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : <User className="w-3.5 h-3.5" />}
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-xs font-bold text-[var(--color-primary-light)]">
+              {profile?.full_name ? (
+                profile.full_name.charAt(0).toUpperCase()
+              ) : (
+                <User className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
             </div>
-            <span className="text-xs font-semibold hidden sm:inline truncate max-w-[120px]">
+            <span className="hidden max-w-[120px] truncate text-xs font-semibold sm:inline">
               {profile?.full_name || 'Mi Perfil'}
             </span>
           </Link>
 
           <button
-            onClick={handleLogout}
-            className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition cursor-pointer"
-            title="Cerrar Sesión"
+            type="button"
+            aria-label="Cerrar sesión"
+            title="Cerrar sesión"
+            className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-400 transition hover:bg-red-500/20"
+            onClick={() => void handleLogout()}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

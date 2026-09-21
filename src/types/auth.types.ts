@@ -49,6 +49,7 @@ export type Permission =
   | 'platform:write'
   | 'platform:config'
   | 'users:manage'
+  | 'roles:manage'
   | 'content:moderate'
   | 'content:approve'
   | 'content:reject'
@@ -82,7 +83,7 @@ export interface UserProfile {
   full_name: string | null;
   avatar_url: string | null;
   phone: string | null;
-  role: UserRole;
+  roles: AssignedRole[];
   sub_role?: PrestadorSubRole | null;
   org_role?: PrestadorOrgRole | null;
   tenant_id: string | null;
@@ -101,6 +102,7 @@ export interface UserProfile {
   preferred_language?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
+  travel_preferences?: string[];
 
   // Extensión para Prestador
   ruc?: string | null;
@@ -144,6 +146,7 @@ export interface UserProfile {
   endpoint_url?: string | null;
 
   // Extensión para Reguladores (MinCIT / Cámara de Comercio)
+  /** @deprecated legacy compatibility; never expose as a new UI option. */
   entity_type?: 'MINCIT' | 'FONTUR' | 'DIRCETUR' | 'CAMARA_COMERCIO' | null;
   institutional_id?: string | null;
   jurisdiction_scope?: string | null;
@@ -151,8 +154,21 @@ export interface UserProfile {
   // Extensión para Afiliados / Embajadores
   referral_code?: string | null;
   commission_rate?: number;
-  payout_method?: 'yape' | 'plin' | 'cci' | 'transferencia' | null;
+  payout_method?: 'nequi' | 'daviplata' | 'transferencia' | 'yape' | 'plin' | 'cci' | null;
   total_earnings?: number;
+}
+
+export interface AssignedRole {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  badge_color: string;
+  folder_name: string;
+  is_active: boolean;
+  is_protected: boolean;
+  is_system: boolean;
+  is_primary: boolean;
 }
 
 /**
@@ -170,7 +186,7 @@ export const ROLE_METADATA: Record<UserRole, RoleMetaData> = {
   [UserRoleEnum.USUARIO]: {
     role: UserRoleEnum.USUARIO,
     label: 'Usuario',
-    description: 'Rol base por defecto al registrarse en la plataforma.',
+    description: 'Rol legado de compatibilidad con cuentas creadas en versiones anteriores.',
     badgeColor: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
     folderName: 'usuario',
   },
@@ -300,27 +316,6 @@ export const signUpSchema = z.object({
   preferredLanguage: z.string().optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
-  role: z.enum([
-    'usuario',
-    'turista',
-    'prestador_turistico',
-    'admin',
-    'super_admin',
-    'moderador',
-    'auditor',
-    'soporte',
-    'analista_datos',
-    'servicios_ia',
-    'desarrollador',
-    'embajador',
-    'afiliado',
-    'funcionario_mincit',
-    'camara_comercio',
-  ]).default('turista'),
-  subRole: z
-    .enum(['alojamiento', 'gastronomia', 'agencia_viajes', 'transporte', 'guia', 'artesania', 'entretenimiento'])
-    .optional(),
-  rntNumber: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden.',
   path: ['confirmPassword'],

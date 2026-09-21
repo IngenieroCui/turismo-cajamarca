@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../context/useAuthStore';
+import ConfirmDialog from '../ui/ConfirmDialog';
 import { ROLE_METADATA, type UserRole } from '../../types/auth.types';
+import { cancelAccountDeletion, downloadMyDataJson, getMyDeletionRequest, requestAccountDeletion } from '../../services/privacyService';
+import type { AccountDeletionRequest } from '../../types/privacy.types';
 import { getUserFullRoleProfile, updateUserRoleProfile } from '../../services/profileService';
+import WorkspaceSection from '../workspace/WorkspaceSection';
 import {
   User,
   Mail,
@@ -15,10 +19,12 @@ import {
 } from 'lucide-react';
 
 export const ProfileManagementView: React.FC = () => {
-  const { user, profile, fetchProfile } = useAuthStore();
+  const { user, profile, fetchProfile, activeRole } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+  const [deletionConfirmOpen, setDeletionConfirmOpen] = useState(false);
 
   // Campos Base
   const [fullName, setFullName] = useState('');
@@ -67,18 +73,19 @@ export const ProfileManagementView: React.FC = () => {
   const [envAccess, setEnvAccess] = useState('Staging');
 
   // IA
-  const [serviceName, setServiceName] = useState('Recomendador Gemini');
-  const [modelVersion, setModelVersion] = useState('v2.5-flash');
+  const [serviceName, setServiceName] = useState('Motor de recomendaciones determinísticas');
+  const [modelVersion, setModelVersion] = useState('rules-v1');
 
   // Regulador
   const [institutionalId, setInstitutionalId] = useState('');
 
   // Afiliado
   const [referralCode, setReferralCode] = useState('');
-  const [payoutMethod, setPayoutMethod] = useState<'yape' | 'plin' | 'cci' | 'transferencia'>('yape');
+  const [payoutMethod, setPayoutMethod] = useState<'nequi' | 'daviplata' | 'transferencia' | 'yape' | 'plin' | 'cci'>('transferencia');
 
-  const currentRole: UserRole = profile?.role || 'turista';
-  const roleMeta = ROLE_METADATA[currentRole];
+  const currentRole: UserRole = activeRole || (profile?.roles.find((role) => role.is_primary)?.code as UserRole) || 'turista';
+  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.turista;
+  const specializedReadOnly = ['moderador', 'auditor', 'soporte', 'analista_datos', 'desarrollador', 'funcionario_mincit', 'camara_comercio', 'servicios_ia'].includes(currentRole);
 
   const loadProfileData = async () => {
     if (!user) return;
@@ -126,20 +133,29 @@ export const ProfileManagementView: React.FC = () => {
       setGitHandle(activeData.git_handle || '');
       setEnvAccess(activeData.environment_access || 'Staging');
 
-      setServiceName(activeData.service_name || 'Recomendador Gemini');
-      setModelVersion(activeData.model_version || 'v2.5-flash');
+      setServiceName(activeData.service_name || 'Motor de recomendaciones determinísticas');
+      setModelVersion(activeData.model_version || 'rules-v1');
 
       setInstitutionalId(activeData.institutional_id || '');
 
       setReferralCode(activeData.referral_code || '');
-      setPayoutMethod(activeData.payout_method || 'yape');
+      const storedPayout = activeData.payout_method;
+      setPayoutMethod(storedPayout === 'yape' ? 'nequi' : storedPayout === 'plin' ? 'daviplata' : storedPayout === 'cci' ? 'transferencia' : storedPayout || 'transferencia');
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    loadProfileData();
-  }, [user?.id]);
+    void Promise.resolve().then(loadProfileData);
+  // La función se mantiene estable por el cambio de rol; incluirla aquí provocaría una recarga tras cada fetchProfile.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, currentRole]);
+
+  useEffect(() => { if (user) void getMyDeletionRequest().then(setDeletionRequest).catch(() => undefined); }, [user]);
+
+  const exportData = async () => { try { await downloadMyDataJson(); setStatusMessage({ type: 'success', text: 'Se descargó una copia JSON de tus datos.' }); } catch (error: unknown) { setStatusMessage({ type: 'error', text: error instanceof Error ? error.message : 'No fue posible exportar tus datos.' }); } };
+  const requestDeletion = async () => { try { await requestAccountDeletion(); setDeletionRequest(await getMyDeletionRequest()); setStatusMessage({ type: 'success', text: 'Solicitud de eliminación creada para revisión.' }); } catch (error: unknown) { setStatusMessage({ type: 'error', text: error instanceof Error ? error.message : 'No fue posible crear la solicitud.' }); } };
+  const cancelDeletion = async () => { try { await cancelAccountDeletion(); setDeletionRequest(null); setStatusMessage({ type: 'success', text: 'Solicitud cancelada.' }); } catch (error: unknown) { setStatusMessage({ type: 'error', text: error instanceof Error ? error.message : 'No fue posible cancelar la solicitud.' }); } };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +250,7 @@ export const ProfileManagementView: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
+              <p className="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-purple-300">Mi cuenta</p>
               <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] my-0">
                 {fullName || 'Mi Perfil'}
               </h2>
@@ -247,6 +264,8 @@ export const ProfileManagementView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <WorkspaceSection title="Contexto de cuenta" description="Tu cuenta puede tener más de un rol; el formulario se adapta al panel activo."><div className="flex flex-wrap gap-1.5">{profile?.roles.filter((role) => role.is_active).map((role) => <span key={role.id} className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${role.badge_color}`}>{role.name}{role.code === currentRole ? ' · Activo' : ''}</span>)}</div></WorkspaceSection>
 
       {/* NOTIFICACIÓN FLASH */}
       {statusMessage && (
@@ -275,7 +294,7 @@ export const ProfileManagementView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* CORREO ELECTRÓNICO (BLOQUEADO / NO EDITABLE) */}
             <div className="space-y-1 sm:col-span-2">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] flex items-center justify-between">
+              <label htmlFor="profile-email" className="block text-xs font-semibold text-[var(--text-secondary)] flex items-center justify-between">
                 <span>Correo Electrónico (Identificador Único)</span>
                 <span className="text-[10px] text-amber-400 flex items-center gap-1">
                   <Lock className="w-3 h-3" /> No Editable
@@ -284,6 +303,7 @@ export const ProfileManagementView: React.FC = () => {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
+                  id="profile-email"
                   type="email"
                   value={user?.email || ''}
                   disabled
@@ -295,10 +315,11 @@ export const ProfileManagementView: React.FC = () => {
 
             {/* NOMBRE COMPLETO */}
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo *</label>
+              <label htmlFor="profile-full-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
+                  id="profile-full-name"
                   type="text"
                   placeholder="ej. Juan Perez"
                   value={fullName}
@@ -311,12 +332,13 @@ export const ProfileManagementView: React.FC = () => {
 
             {/* TELÉFONO DE CONTACTO */}
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Contacto</label>
+              <label htmlFor="profile-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Contacto</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
+                  id="profile-phone"
                   type="text"
-                  placeholder="ej. +57 310 1234567"
+                  placeholder="Ingresa tu número"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition"
@@ -326,14 +348,15 @@ export const ProfileManagementView: React.FC = () => {
 
             {/* TIPO DE DOCUMENTO */}
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo de Documento</label>
+              <label htmlFor="profile-document-type" className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo de Documento</label>
               <select
+                id="profile-document-type"
                 value={docType}
                 onChange={(e) => setDocType(e.target.value as 'DNI' | 'RUC' | 'PASAPORTE' | 'CE')}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
               >
-                <option value="DNI">DNI / Cédula de Ciudadanía</option>
-                <option value="RUC">RUC / NIT Empresarial</option>
+                <option value="DNI">Cédula de ciudadanía</option>
+                <option value="RUC">NIT</option>
                 <option value="PASAPORTE">Pasaporte Internacional</option>
                 <option value="CE">Cédula de Extranjería (CE)</option>
               </select>
@@ -341,10 +364,11 @@ export const ProfileManagementView: React.FC = () => {
 
             {/* NÚMERO DE DOCUMENTO */}
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Número de Documento</label>
+              <label htmlFor="profile-document-number" className="block text-xs font-semibold text-[var(--text-secondary)]">Número de Documento</label>
               <div className="relative">
                 <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
+                  id="profile-document-number"
                   type="text"
                   placeholder="ej. 1012345678"
                   value={docNumber}
@@ -357,7 +381,7 @@ export const ProfileManagementView: React.FC = () => {
         </div>
 
         {/* SECCIÓN 2: DATOS ESPECÍFICOS DEL ROL */}
-        <div className="p-6 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-xl space-y-4">
+        <fieldset disabled={specializedReadOnly} className="p-6 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-xl space-y-4 disabled:opacity-80">
           <h3 className="text-base font-bold text-[var(--text-primary)] my-0 flex items-center gap-2 border-b border-[var(--border-light)] pb-3">
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span>Perfil Específico: {roleMeta.label}</span>
@@ -367,8 +391,9 @@ export const ProfileManagementView: React.FC = () => {
           {(currentRole === 'turista' || currentRole === 'usuario') && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
+                <label htmlFor="profile-country" className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
                 <input
+                  id="profile-country"
                   type="text"
                   placeholder="ej. Colombia"
                   value={countryOfOrigin}
@@ -377,8 +402,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
+                <label htmlFor="profile-nationality" className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
                 <input
+                  id="profile-nationality"
                   type="text"
                   placeholder="ej. Colombiana"
                   value={nationality}
@@ -387,8 +413,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Preferido</label>
+                <label htmlFor="profile-language" className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Preferido</label>
                 <select
+                  id="profile-language"
                   value={preferredLang}
                   onChange={(e) => setPreferredLang(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
@@ -399,8 +426,9 @@ export const ProfileManagementView: React.FC = () => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Contacto Emergencia</label>
+                <label htmlFor="profile-emergency-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Contacto Emergencia</label>
                 <input
+                  id="profile-emergency-name"
                   type="text"
                   placeholder="ej. María Perez"
                   value={emergName}
@@ -409,10 +437,11 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1 sm:col-span-2">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono Contacto Emergencia</label>
+                <label htmlFor="profile-emergency-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono Contacto Emergencia</label>
                 <input
+                  id="profile-emergency-phone"
                   type="text"
-                  placeholder="ej. +57 300 9876543"
+                  placeholder="Número de emergencia"
                   value={emergPhone}
                   onChange={(e) => setEmergPhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition"
@@ -425,8 +454,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'prestador_turistico' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">RUC / NIT Empresarial</label>
+                <label htmlFor="profile-ruc" className="block text-xs font-semibold text-[var(--text-secondary)]">NIT Empresarial</label>
                 <input
+                  id="profile-ruc"
                   type="text"
                   placeholder="ej. 901234567-1"
                   value={ruc}
@@ -435,8 +465,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">N° Registro RNT</label>
+                <label htmlFor="profile-rnt" className="block text-xs font-semibold text-[var(--text-secondary)]">N° Registro RNT</label>
                 <input
+                  id="profile-rnt"
                   type="text"
                   placeholder="ej. RNT-12345"
                   value={rntNumber}
@@ -445,8 +476,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Razón Social</label>
+                <label htmlFor="profile-business-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Razón Social</label>
                 <input
+                  id="profile-business-name"
                   type="text"
                   placeholder="ej. Hotel Los Pinos S.A.S."
                   value={razonSocial}
@@ -455,8 +487,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Comercial</label>
+                <label htmlFor="profile-trade-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Comercial</label>
                 <input
+                  id="profile-trade-name"
                   type="text"
                   placeholder="ej. Posada Campestre Los Pinos"
                   value={nombreComercial}
@@ -465,8 +498,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1 sm:col-span-2">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Dirección Física del Servicio</label>
+                <label htmlFor="profile-service-address" className="block text-xs font-semibold text-[var(--text-secondary)]">Dirección Física del Servicio</label>
                 <input
+                  id="profile-service-address"
                   type="text"
                   placeholder="ej. Vereda Anaime Km 4, Cajamarca Tolima"
                   value={address}
@@ -481,8 +515,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'moderador' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Área de Especialidad</label>
+                <label htmlFor="profile-specialty-area" className="block text-xs font-semibold text-[var(--text-secondary)]">Área de Especialidad</label>
                 <input
+                  id="profile-specialty-area"
                   type="text"
                   value={specialtyArea}
                   onChange={(e) => setSpecialtyArea(e.target.value)}
@@ -490,8 +525,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nivel de Moderación</label>
+                <label htmlFor="profile-moderation-level" className="block text-xs font-semibold text-[var(--text-secondary)]">Nivel de Moderación</label>
                 <select
+                  id="profile-moderation-level"
                   value={moderationLevel}
                   onChange={(e) => setModerationLevel(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
@@ -508,8 +544,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'auditor' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">ID Certificación de Auditoría</label>
+                <label htmlFor="profile-audit-cert" className="block text-xs font-semibold text-[var(--text-secondary)]">ID Certificación de Auditoría</label>
                 <input
+                  id="profile-audit-cert"
                   type="text"
                   placeholder="ej. AUD-2026-TOL"
                   value={auditCertId}
@@ -518,8 +555,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Alcance Institucional</label>
+                <label htmlFor="profile-institutional-scope" className="block text-xs font-semibold text-[var(--text-secondary)]">Alcance Institucional</label>
                 <input
+                  id="profile-institutional-scope"
                   type="text"
                   value={institutionalScope}
                   onChange={(e) => setInstitutionalScope(e.target.value)}
@@ -533,8 +571,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'soporte' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nivel de Atención</label>
+                <label htmlFor="profile-support-level" className="block text-xs font-semibold text-[var(--text-secondary)]">Nivel de Atención</label>
                 <input
+                  id="profile-support-level"
                   type="text"
                   value={supportLevel}
                   onChange={(e) => setSupportLevel(e.target.value)}
@@ -542,8 +581,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Cola Asignada</label>
+                <label htmlFor="profile-assigned-queue" className="block text-xs font-semibold text-[var(--text-secondary)]">Cola Asignada</label>
                 <input
+                  id="profile-assigned-queue"
                   type="text"
                   value={assignedQueue}
                   onChange={(e) => setAssignedQueue(e.target.value)}
@@ -557,8 +597,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'analista_datos' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Herramienta BI Preferida</label>
+                <label htmlFor="profile-bi-tool" className="block text-xs font-semibold text-[var(--text-secondary)]">Herramienta BI Preferida</label>
                 <input
+                  id="profile-bi-tool"
                   type="text"
                   value={biTool}
                   onChange={(e) => setBiTool(e.target.value)}
@@ -566,8 +607,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Alcance de Datasets</label>
+                <label htmlFor="profile-dataset-scope" className="block text-xs font-semibold text-[var(--text-secondary)]">Alcance de Datasets</label>
                 <input
+                  id="profile-dataset-scope"
                   type="text"
                   value={datasetScope}
                   onChange={(e) => setDatasetScope(e.target.value)}
@@ -581,8 +623,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'desarrollador' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Usuario Git / GitHub</label>
+                <label htmlFor="profile-git-handle" className="block text-xs font-semibold text-[var(--text-secondary)]">Usuario Git / GitHub</label>
                 <input
+                  id="profile-git-handle"
                   type="text"
                   placeholder="ej. @dev-cajamarca"
                   value={gitHandle}
@@ -591,8 +634,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Entorno de Trabajo Asignado</label>
+                <label htmlFor="profile-env-access" className="block text-xs font-semibold text-[var(--text-secondary)]">Entorno de Trabajo Asignado</label>
                 <select
+                  id="profile-env-access"
                   value={envAccess}
                   onChange={(e) => setEnvAccess(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
@@ -609,8 +653,9 @@ export const ProfileManagementView: React.FC = () => {
           {currentRole === 'servicios_ia' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre del Servicio IA</label>
+                <label htmlFor="profile-service-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre del Servicio IA</label>
                 <input
+                  id="profile-service-name"
                   type="text"
                   value={serviceName}
                   onChange={(e) => setServiceName(e.target.value)}
@@ -618,8 +663,9 @@ export const ProfileManagementView: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Versión del Modelo LLM</label>
+                <label htmlFor="profile-model-version" className="block text-xs font-semibold text-[var(--text-secondary)]">Versión del motor actual</label>
                 <input
+                  id="profile-model-version"
                   type="text"
                   value={modelVersion}
                   onChange={(e) => setModelVersion(e.target.value)}
@@ -633,8 +679,9 @@ export const ProfileManagementView: React.FC = () => {
           {(currentRole === 'funcionario_mincit' || currentRole === 'camara_comercio') && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1 sm:col-span-2">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">ID / Credencial Institucional</label>
+                <label htmlFor="profile-institutional-id" className="block text-xs font-semibold text-[var(--text-secondary)]">ID / Credencial Institucional</label>
                 <input
+                  id="profile-institutional-id"
                   type="text"
                   placeholder="ej. MINCIT-COL-987"
                   value={institutionalId}
@@ -649,31 +696,32 @@ export const ProfileManagementView: React.FC = () => {
           {(currentRole === 'embajador' || currentRole === 'afiliado') && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Código Único de Referido</label>
+                <label htmlFor="profile-referral-code" className="block text-xs font-semibold text-[var(--text-secondary)]">Código Único de Referido</label>
                 <input
+                  id="profile-referral-code"
                   type="text"
                   placeholder="ej. CAJAMARCA-2026"
                   value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
+                  readOnly
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs font-mono focus:outline-none focus:border-purple-400 transition"
                 />
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Método de Cobro Preferido</label>
+                <label htmlFor="profile-payout-method" className="block text-xs font-semibold text-[var(--text-secondary)]">Método de Cobro Preferido</label>
                 <select
+                  id="profile-payout-method"
                   value={payoutMethod}
-                  onChange={(e) => setPayoutMethod(e.target.value as 'yape' | 'plin' | 'cci' | 'transferencia')}
+                  onChange={(e) => setPayoutMethod(e.target.value as 'nequi' | 'daviplata' | 'transferencia')}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-xs focus:outline-none focus:border-purple-400 transition cursor-pointer"
                 >
-                  <option value="yape">Yape / Nequi</option>
-                  <option value="plin">Plin / Daviplata</option>
-                  <option value="cci">Cuenta Bancaria CCI</option>
-                  <option value="transferencia">Transferencia Directa</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="daviplata">Daviplata</option>
+                  <option value="transferencia">Transferencia bancaria</option>
                 </select>
               </div>
             </div>
           )}
-        </div>
+        </fieldset>
 
         {/* BOTÓN GUARDAR CAMBIOS */}
         <div className="flex items-center justify-end gap-3">
@@ -687,6 +735,8 @@ export const ProfileManagementView: React.FC = () => {
           </button>
         </div>
       </form>
+      <section className="space-y-4 rounded-3xl border border-[var(--border-light)] bg-[var(--bg-secondary)] p-6 shadow-xl"><h3 className="text-base font-bold">Privacidad y datos</h3><p className="text-xs text-[var(--text-secondary)]">Genera una copia JSON de la información asociada a tu cuenta.</p><button type="button" onClick={() => void exportData()} className="rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white">Descargar mis datos</button>{deletionRequest ? <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4"><p className="text-xs text-amber-100">Tienes una solicitud pendiente de eliminación de cuenta.</p><p className="mt-2 text-[11px] text-[var(--text-secondary)]">La solicitud será revisada antes de eliminar o anonimizar los datos que legalmente puedan eliminarse. Los registros transaccionales/auditoría que deban conservarse pueden permanecer anonimizados.</p><button type="button" onClick={() => void cancelDeletion()} className="mt-3 rounded-xl border border-amber-500/30 px-3 py-2 text-xs font-bold text-amber-200">Cancelar solicitud</button></div> : <button type="button" onClick={() => setDeletionConfirmOpen(true)} className="rounded-xl border border-red-500/30 px-4 py-2.5 text-xs font-bold text-red-300">Solicitar eliminación de cuenta</button>}</section>
+      <ConfirmDialog open={deletionConfirmOpen} title="Solicitar eliminación de cuenta" message="Esto crea una solicitud para revisión y no elimina inmediatamente todos los registros legales o de auditoría." variant="danger" confirmLabel="Solicitar eliminación" onCancel={() => setDeletionConfirmOpen(false)} onConfirm={() => { setDeletionConfirmOpen(false); void requestDeletion(); }} />
     </div>
   );
 };

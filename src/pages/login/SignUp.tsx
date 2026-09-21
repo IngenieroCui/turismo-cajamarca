@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
-import { UserRoleEnum, signUpSchema } from '../../types/auth.types';
+import { signUpSchema } from '../../types/auth.types';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
 import { Footer } from '../../Footer';
 import {
@@ -32,13 +32,10 @@ export const SignUp: React.FC = () => {
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [logoPath, setLogoPath] = useState<string>('/web/icon-192.png');
+  const [logoPath] = useState<string>(() => getPlatformLogo());
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setLogoPath(getPlatformLogo());
-  }, []);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +55,6 @@ export const SignUp: React.FC = () => {
       preferredLanguage,
       emergencyContactName: emergencyContactName || undefined,
       emergencyContactPhone: emergencyContactPhone || undefined,
-      role: UserRoleEnum.TURISTA,
     };
 
     const validation = signUpSchema.safeParse(formData);
@@ -74,15 +70,19 @@ export const SignUp: React.FC = () => {
     }
 
     const res = await signUp(formData);
-    if (res.success) {
+    if (res.success && res.requiresEmailConfirmation) {
+      setRequiresEmailConfirmation(true);
+    } else if (res.success) {
       navigate('/turista', { replace: true });
     }
   };
 
+  if (requiresEmailConfirmation) return <div className="flex min-h-screen flex-col justify-between bg-[var(--bg-primary)] text-[var(--text-primary)]"><main className="flex flex-1 items-center justify-center p-5 sm:p-8"><section className="w-full max-w-md space-y-4 rounded-3xl border border-emerald-500/30 bg-[var(--bg-secondary)] p-6 text-center shadow-2xl"><h1 className="my-0 text-2xl font-bold">Cuenta creada</h1><p className="text-sm text-[var(--text-secondary)]">Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.</p><Link to="/login" className="inline-flex rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-bold text-white">Ir a iniciar sesión</Link></section></main><Footer /></div>;
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col justify-between">
       <div className="flex-1 flex items-center justify-center p-4 py-8">
-        <div className="max-w-xl w-full p-8 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-2xl space-y-6">
+        <div className="max-w-xl w-full p-5 sm:p-8 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-2xl space-y-6">
           {/* Header */}
           <div className="text-center space-y-3">
             <Link to="/login" className="inline-flex items-center justify-center mb-1">
@@ -127,9 +127,11 @@ export const SignUp: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo *</label>
+                  <label htmlFor="signup-full-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo *</label>
                   <input
+                    id="signup-full-name"
                     type="text"
+                    autoComplete="name"
                     placeholder="Ej. María García"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -139,10 +141,12 @@ export const SignUp: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Correo Electrónico *</label>
+                  <label htmlFor="signup-email" className="block text-xs font-semibold text-[var(--text-secondary)]">Correo Electrónico *</label>
                   <input
+                    id="signup-email"
                     type="email"
-                    placeholder="turista@ejemplo.pe"
+                    autoComplete="email"
+                    placeholder="turista@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -153,11 +157,13 @@ export const SignUp: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono / WhatsApp</label>
+                  <label htmlFor="signup-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono / WhatsApp</label>
                   <div className="relative">
                     <input
+                      id="signup-phone"
                       type="tel"
-                      placeholder="+51 987654321"
+                      autoComplete="tel"
+                      placeholder="Ingresa tu número"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full pl-8 pr-3.5 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -167,21 +173,23 @@ export const SignUp: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo Documento</label>
+                  <label htmlFor="signup-document-type" className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo Documento</label>
                   <select
+                    id="signup-document-type"
                     value={documentType}
                     onChange={(e) => setDocumentType(e.target.value as 'DNI' | 'RUC' | 'PASAPORTE' | 'CE')}
                     className="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
                   >
-                    <option value="DNI">CC (Colombia)</option>
+                    <option value="DNI">Cédula de ciudadanía</option>
                     <option value="PASAPORTE">Pasaporte</option>
-                    <option value="CE">Carnet Extranjería</option>
+                    <option value="CE">Cédula de extranjería</option>
                   </select>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">N° Documento</label>
+                  <label htmlFor="signup-document-number" className="block text-xs font-semibold text-[var(--text-secondary)]">N° Documento</label>
                   <input
+                    id="signup-document-number"
                     type="text"
                     placeholder="72849301"
                     value={documentNumber}
@@ -200,10 +208,11 @@ export const SignUp: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
+                  <label htmlFor="signup-country" className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
                   <input
+                    id="signup-country"
                     type="text"
-                    placeholder="Ej. Perú"
+                    placeholder="Ej. Colombia"
                     value={countryOfOrigin}
                     onChange={(e) => setCountryOfOrigin(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -211,8 +220,9 @@ export const SignUp: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
+                  <label htmlFor="signup-nationality" className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
                   <input
+                    id="signup-nationality"
                     type="text"
                     placeholder="Ej. Colombiana"
                     value={nationality}
@@ -222,8 +232,9 @@ export const SignUp: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Principal</label>
+                  <label htmlFor="signup-language" className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Principal</label>
                   <select
+                    id="signup-language"
                     value={preferredLanguage}
                     onChange={(e) => setPreferredLanguage(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -246,8 +257,9 @@ export const SignUp: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Contacto de Emergencia</label>
+                  <label htmlFor="signup-emergency-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Contacto de Emergencia</label>
                   <input
+                    id="signup-emergency-name"
                     type="text"
                     placeholder="Ej. Carlos García (Padre)"
                     value={emergencyContactName}
@@ -257,10 +269,11 @@ export const SignUp: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Emergencia</label>
+                  <label htmlFor="signup-emergency-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Emergencia</label>
                   <input
+                    id="signup-emergency-phone"
                     type="tel"
-                    placeholder="+51 912345678"
+                      placeholder="Número de emergencia"
                     value={emergencyContactPhone}
                     onChange={(e) => setEmergencyContactPhone(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -272,21 +285,26 @@ export const SignUp: React.FC = () => {
             {/* Sección 4: Contraseñas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-[var(--border-light)]">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Contraseña *</label>
+                <label htmlFor="signup-password" className="block text-xs font-semibold text-[var(--text-secondary)]">Contraseña *</label>
                 <input
+                  id="signup-password"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
                 />
                 {fieldErrors.password && <p className="text-[11px] text-[var(--color-danger)] font-medium">{fieldErrors.password}</p>}
+                <p className="text-[11px] text-[var(--text-muted)]">Mínimo 6 caracteres.</p>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[var(--text-secondary)]">Confirmar Contraseña *</label>
+                <label htmlFor="signup-confirm-password" className="block text-xs font-semibold text-[var(--text-secondary)]">Confirmar Contraseña *</label>
                 <input
+                  id="signup-confirm-password"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

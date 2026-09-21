@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
-import { loginSchema, UserRoleEnum } from '../../types/auth.types';
+import { loginSchema } from '../../types/auth.types';
+import { getDefaultRoleRoute } from '../../utils/roleRouting';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
 import { Footer } from '../../Footer';
 import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
@@ -14,11 +15,7 @@ export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
-  const [logoPath, setLogoPath] = useState<string>('/web/icon-192.png');
-
-  useEffect(() => {
-    setLogoPath(getPlatformLogo());
-  }, []);
+  const [logoPath] = useState<string>(() => getPlatformLogo());
 
   const from = (location.state as { from?: { pathname?: string } })?.from?.pathname;
 
@@ -40,9 +37,8 @@ export const Login: React.FC = () => {
     const res = await loginWithEmail({ email, password });
     if (res.success) {
       const currentProfile = res.profile || useAuthStore.getState().profile;
-      const activeRole = currentProfile?.role || UserRoleEnum.TURISTA;
-      const defaultRolePath = `/${activeRole}`;
-      const targetPath = from || defaultRolePath;
+      const defaultRolePath = getDefaultRoleRoute(currentProfile?.roles);
+      const targetPath = from && from.startsWith('/') && !from.startsWith('/login') && !from.startsWith('/signup') ? from : defaultRolePath;
       navigate(targetPath, { replace: true });
     }
   };
@@ -77,10 +73,12 @@ export const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Correo Electrónico</label>
+              <label htmlFor="login-email" className="block text-xs font-semibold text-[var(--text-secondary)]">Correo Electrónico</label>
               <input
+                id="login-email"
                 type="email"
-                placeholder="usuario@turismocajamarca.pe"
+                autoComplete="email"
+                  placeholder="usuario@ejemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] focus:ring-1 focus:ring-[var(--color-primary-light)] transition"
@@ -89,9 +87,11 @@ export const Login: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Contraseña</label>
+              <label htmlFor="login-password" className="block text-xs font-semibold text-[var(--text-secondary)]">Contraseña</label>
               <input
+                id="login-password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -121,7 +121,7 @@ export const Login: React.FC = () => {
             <p className="text-xs text-[var(--text-secondary)]">
               ¿No tienes cuenta?{' '}
               <Link to="/signup" className="text-[var(--color-primary-light)] font-semibold hover:underline">
-                Registrarse aquí (Rol Usuario por defecto)
+                Registrarse aquí como turista
               </Link>
             </p>
           </div>

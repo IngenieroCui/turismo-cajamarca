@@ -1,50 +1,8 @@
 import React from 'react';
-import { useAuthStore } from '../../context/useAuthStore';
-import { ROLE_METADATA, UserRoleEnum } from '../../types/auth.types';
+import { Award, Link2 } from 'lucide-react';
 import { RoleDrawerLayout } from '../../components/RoleDrawerLayout';
-import { Share2, Award, DollarSign } from 'lucide-react';
+import AffiliateDashboard from '../../components/referral/AffiliateDashboard';
+import RoleWorkspaceHeader from '../../components/workspace/RoleWorkspaceHeader';
 
-export const EmbajadorPage: React.FC = () => {
-  const { user, profile } = useAuthStore();
-  const meta = ROLE_METADATA[UserRoleEnum.EMBAJADOR];
-
-  return (
-    <RoleDrawerLayout>
-      <div className="space-y-6">
-        <div className="p-6 rounded-3xl bg-[var(--bg-secondary)] border border-amber-500/20 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-amber-200 my-0">{profile?.full_name || user?.email}</h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">{user?.email}</p>
-            </div>
-            <span className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${meta.badgeColor}`}>
-              {meta.label}
-            </span>
-          </div>
-
-          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{meta.description}</p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] space-y-1">
-              <Share2 className="w-5 h-5 text-amber-400" />
-              <h4 className="text-xs font-bold text-[var(--text-primary)] my-0">Link de Embajador</h4>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Difusión turística</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] space-y-1">
-              <Award className="w-5 h-5 text-orange-400" />
-              <h4 className="text-xs font-bold text-[var(--text-primary)] my-0">Logros & Reconocimientos</h4>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Impacto territorial</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-light)] space-y-1">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
-              <h4 className="text-xs font-bold text-[var(--text-primary)] my-0">Incentivos</h4>
-              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Comisiones e ingresos</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </RoleDrawerLayout>
-  );
-};
-
+const EmbajadorPage: React.FC = () => <RoleDrawerLayout><div className="space-y-6"><RoleWorkspaceHeader eyebrow="Promoción comunitaria" title="Impacto de tus referidos" description="Comparte Cajamarca y entiende el impacto medido por visitas únicas y reservas atribuidas." roleLabel="Embajador" roleBadgeClass="border-orange-500/30 bg-orange-500/10 text-orange-200" icon={Link2} /><AffiliateDashboard variant="ambassador" /><div className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]"><Award className="mr-2 inline h-4 w-4 text-orange-400" />Las personas alcanzadas corresponden a visitas únicas registradas en tu enlace.</div></div></RoleDrawerLayout>;
 export default EmbajadorPage;

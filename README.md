@@ -1,145 +1,79 @@
-# 🏔️ Turismo Cajamarca PWA
+# Turismo Cajamarca
 
-> **Plataforma Web Progresiva (PWA)** de alto rendimiento para el descubrimiento, gestión y promoción del ecosistema turístico de la región de Cajamarca.
+Turismo Cajamarca es una PWA para descubrir experiencias de Cajamarca y operar un marketplace turístico con control de acceso multirol. Conecta turistas, prestadores, moderación, soporte, entidades regulatorias y administración de plataforma.
 
-![React](https://img.shields.io/badge/React-19.2-blue?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue?logo=typescript)
-![Vite](https://img.shields.io/badge/Vite-8.2-purple?logo=vite)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4.3-38bdf8?logo=tailwindcss)
-![Supabase](https://img.shields.io/badge/Supabase-Database_%26_Auth-3ecf8e?logo=supabase)
-![PWA](https://img.shields.io/badge/PWA-Enabled-5A0FC8?logo=pwa)
+## Arquitectura
 
----
+- React 19 + TypeScript 6 + Vite 8.
+- Zustand para estado de sesión y contexto de plataforma.
+- React Router para rutas protegidas y carga diferida de paneles.
+- Tailwind CSS y componentes accesibles para la interfaz responsive.
+- Supabase BaaS: Auth, PostgreSQL, RLS, triggers y RPC `SECURITY DEFINER`.
+- PWA con `vite-plugin-pwa` y Workbox.
 
-## 📌 Descripción General
+No existe backend propio. No hay pasarela de pagos integrada: los pagos son registros externos/manuales. Las recomendaciones, itinerarios y el asistente de catálogo son determinísticos; no usan Gemini, OpenAI, embeddings ni una base vectorial.
 
-**Turismo Cajamarca** es un ecosistema digital integral estructurado como una **Progressive Web App (PWA)**. Está diseñado para interconectar a turistas, operadores turísticos, artesanos, entes reguladores y administradores regionales en una sola plataforma rápida, segura y accesible desde cualquier dispositivo (móvil, tablet o escritorio).
+## Roles
 
----
+La cuenta puede tener varios roles activos y un rol principal: Super Admin, Admin, Moderador, Prestador Turístico, Turista/Usuario, Auditor, Soporte, Analista de Datos, Afiliado, Embajador, MinCIT/FONTUR, Cámara de Comercio y Desarrollador/DevOps. `servicios_ia` es una identidad de sistema, no un rol humano.
 
-## ✨ Características Principales
+## Capacidades principales
 
-### 📱 Experiencia PWA Multi-dispositivo
-* **Instalable** en dispositivos móviles y de escritorio.
-* **Caché Inteligente** y soporte Offline impulsado por Workbox / Service Workers.
-* **Interfaz Adaptativa** con modo oscuro por defecto y diseño fluido tipo App nativa.
+Autenticación y RBAC, cambio de rol y contexto de negocio; catálogo y moderación; disponibilidad, promociones y reservas; favoritos, reseñas y respuestas; equipos de prestadores; soporte, notas internas y reembolsos pendientes; auditoría; cumplimiento RNT y registro mercantil; referidos y comisiones; analítica agregada; preferencias, recomendaciones, itinerarios y asistente; notificaciones, banderas, mantenimiento, salud operativa y solicitudes de privacidad.
 
-### 🛡️ Autenticación y Control de Acceso Granular (RBAC)
-Sistema de seguridad multinivel basado en **Supabase Auth** y **Row Level Security (RLS)** en PostgreSQL:
+## Desarrollo local
 
-* 🔴 **Super Administrador (`super_admin`)**:
-  * Control total sobre la infraestructura, logs de auditoría inmutables y gestión global del sistema.
-  * Privilegio exclusivo para nombrar y gestionar cuentas de **Administrador (`admin`)** y de **Super Administrador**.
-  * Acceso al comodín de permisos globales (`*`).
-
-* 🟣 **Administrador (`admin`)**:
-  * Operación diaria de la plataforma, usuarios, prestadores y contenidos.
-  * **Aislamiento de Seguridad**: Los administradores estándar no pueden ver la presencia ni modificar el rol de los usuarios `super_admin`. Tampoco pueden otorgar permisos administrativos a otros usuarios.
-
-* 🟢 **Prestador Turístico (`prestador_turistico`)**:
-  * Gestión de servicios, productos, guías, tours y verificación de Registro Nacional de Turismo (RNT).
-
-* 🔵 **Turista (`turista` / `usuario`)**:
-  * Exploración de atractivos, tours, eventos, gastronomía, artesanías y recomendaciones inteligentes.
-
-* 🟡 **Entidades Reguladoras (`funcionario_mincit` / `camara_comercio`)**:
-  * Fiscalización RNT y validación formal mercantil.
-
-* 🟧 **Otros Roles Especializados**: Moderador, Auditor, Soporte Técnico, Analista de Datos, Servicios IA, Embajador y Afiliados.
-
----
-
-## 🛠️ Tecnologías Utilizadas
-
-| Categoría | Tecnología / Librería | Descripción |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, TypeScript | Biblioteca UI principal y tipado estático estricto. |
-| **Build Tool** | Vite 8 | Enpaquetador ultra rápido con HMR en tiempo real. |
-| **Estilos** | Tailwind CSS v4 | Framework de utilidad CSS para diseño moderno y reactivo. |
-| **Estado Global** | Zustand 5 | Gestión de estado ligera y reactiva para la sesión y perfiles. |
-| **Enrutamiento** | React Router v7 | Navegación declarativa y protección de rutas por rol. |
-| **Backend & BD** | Supabase (PostgreSQL) | Base de datos relacional, Auth, Triggers, RLS y Funciones RPC. |
-| **Validación** | Zod 4 | Validación estricta de esquemas de datos y formularios. |
-| **Iconografía** | Lucide React | Conjunto de iconos vectoriales modernos. |
-| **PWA** | `vite-plugin-pwa`, Workbox | Generación automática del Service Worker y Manifest. |
-
----
-
-## 📁 Estructura del Proyecto
+Requisitos: Node.js 18+ y npm 9+.
 
 ```bash
-turismo_cajamarca/
-├── sql/                                # Scripts SQL para Supabase (PostgreSQL)
-│   ├── 00_master_schema_all_in_one.sql # Esquema maestro unificado
-│   ├── 01_create_enums_and_types.sql   # Enums y tipos de datos
-│   ├── 04_create_auth_trigger.sql      # Triggers automáticos de perfiles
-│   ├── 05_enable_rls_and_policies.sql  # Políticas de Seguridad RLS
-│   └── 06_create_turismo_roles_table.sql# Tabla dinámica turismo_roles
-├── src/
-│   ├── context/                        # Zustand Store (Auth y Perfil)
-│   ├── lib/                            # Cliente oficial de Supabase
-│   ├── pages/                          # Vistas y paneles organizados por rol
-│   │   ├── admin/                      # Panel del Administrador
-│   │   ├── super_admin/                # Panel del Super Administrador
-│   │   ├── prestador_turistico/        # Panel de Prestadores
-│   │   ├── turista/                    # Panel de Turistas
-│   │   └── ...                         # Otros módulos de rol
-│   ├── services/                       # Servicios de conexión con la BD (rolesService)
-│   └── types/                          # Interfaces TypeScript y esquemas Zod
-├── public/                             # Assets estáticos y manifiesto PWA
-└── package.json
+npm install
+copy .env.example .env.local
+npm run dev
 ```
 
----
+Configura en `.env.local`:
 
-## 🚀 Configuración e Instalación Local
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_APP_NAME=Turismo Cajamarca
+VITE_APP_VERSION=1.0.0
+```
 
-### Requisitos Previos
-* **Node.js** v18+ 
-* **npm** v9+
-* Una cuenta y proyecto activo en **Supabase**
+No guardes claves service-role, contraseñas, tokens ni otros secretos en el repositorio. El cliente utiliza únicamente la clave pública anon de Supabase.
 
-### Pasos de Instalación
+## Base de datos
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone https://github.com/tu-usuario/turismo_cajamarca.git
-   cd turismo_cajamarca
-   ```
+En una base nueva ejecuta solamente:
 
-2. **Instalar dependencias:**
-   ```bash
-   npm install
-   ```
+```text
+sql/00_master_schema_all_in_one.sql
+```
 
-3. **Configurar Variables de Entorno:**
-   Crea un archivo `.env.local` en la raíz del proyecto con las credenciales de Supabase:
-   ```env
-   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-   VITE_SUPABASE_ANON_KEY=tu-anon-key-de-supabase
-   ```
+Para actualizar una base existente que ya contiene el esquema histórico, ejecuta en orden:
 
-4. **Ejecutar Scripts en Supabase:**
-   Ejecuta en el **SQL Editor** de tu panel de Supabase el archivo de scripts:
-   * `sql/00_master_schema_all_in_one.sql` (o los scripts numerados en orden `01` a `06`).
+```text
+08_refactor_rbac_multi_role.sql
+09_core_tourism_marketplace.sql
+10_platform_operations_growth.sql
+11_experience_intelligence_engagement.sql
+12_platform_functional_closure.sql
+13_stabilization_data_integrity.sql
+```
 
-5. **Iniciar el servidor de desarrollo:**
-   ```bash
-   npm run dev
-   ```
-   Abre [http://localhost:5173](http://localhost:5173) en tu navegador.
+No ejecutes las migraciones 08–13 sobre una base nueva después del maestro. Los scripts históricos 01–07 se conservan como referencia incremental y no reconstruyen una instalación nueva.
 
----
+La ejecución de QA en vivo debe hacerse únicamente en un proyecto Supabase no productivo y siguiendo [qa/RUNBOOK.md](qa/RUNBOOK.md) y [qa/LIVE_QA_MATRIX.md](qa/LIVE_QA_MATRIX.md). Si no existe un entorno QA disponible, no se deben fabricar resultados.
 
-## ⚙️ Comandos Disponibles
+## Comandos
 
-* `npm run dev`: Inicia el servidor de desarrollo Vite con Hot Module Replacement (HMR).
-* `npm run build`: Compila y optimiza el proyecto para producción en la carpeta `dist/`.
-* `npm run preview`: Previsualiza la compilación de producción localmente.
-* `npm run lint`: Ejecuta el análisis estático de código con ESLint.
+```bash
+npm run dev       # servidor de desarrollo
+npm run build     # compilación de producción y PWA
+npm run lint      # ESLint
+npm run preview   # previsualización de dist/
+```
 
----
+## Licencia
 
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia Privada de **Turismo Cajamarca**. Todos los derechos reservados.
+Proyecto privado de Turismo Cajamarca. Todos los derechos reservados.

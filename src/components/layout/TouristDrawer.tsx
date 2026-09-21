@@ -1,21 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
+import { APP_NAME, APP_VERSION } from '../../config/app';
+import { RoleSwitcher } from '../RoleSwitcher';
+import { usePlatformConfig } from '../../context/usePlatformConfig';
 import {
-  Home,
-  User,
-  MapPin,
-  Hotel,
-  Utensils,
-  Compass,
+  Bot,
   Calendar,
-  ShoppingBag,
-  PhoneCall,
-  LogOut,
-  X,
-  Sparkles,
   ChevronRight,
+  ClipboardList,
+  Compass,
+  Heart,
+  Home,
+  Hotel,
+  LogOut,
+  MapPin,
+  PhoneCall,
+  ShoppingBag,
+  Sparkles,
+  User,
+  Utensils,
+  X,
 } from 'lucide-react';
 
 interface TouristDrawerProps {
@@ -23,7 +29,10 @@ interface TouristDrawerProps {
   onClose: () => void;
 }
 
-export const TOURIST_NAV_ITEMS = [
+const FOCUSABLE_SELECTOR =
+  'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])';
+
+const TOURIST_NAV_ITEMS = [
   {
     path: '/turista',
     label: 'Inicio & Explorar',
@@ -35,6 +44,24 @@ export const TOURIST_NAV_ITEMS = [
     label: 'Mi Perfil',
     icon: User,
     description: 'Ver y editar mis datos personales',
+  },
+  {
+    path: '/turista/reservas',
+    label: 'Mis Reservas',
+    icon: ClipboardList,
+    description: 'Consulta y gestiona tus solicitudes',
+  },
+  {
+    path: '/turista/favoritos',
+    label: 'Favoritos',
+    icon: Heart,
+    description: 'Lugares y experiencias guardadas',
+  },
+  {
+    path: '/turista/asistente',
+    label: 'Asistente de viaje',
+    icon: Bot,
+    description: 'Recomendaciones e itinerarios personalizados',
   },
   {
     path: '/turista/atractivos',
@@ -81,144 +108,200 @@ export const TOURIST_NAV_ITEMS = [
 ];
 
 export const TouristDrawer: React.FC<TouristDrawerProps> = ({ isOpen, onClose }) => {
+  const assistantEnabled = usePlatformConfig((state) => state.assistantEnabled);
   const navigate = useNavigate();
   const { user, profile, logout } = useAuthStore();
-  const [logoPath, setLogoPath] = useState('/web/icon-192.png');
+  const [logoPath] = useState(() => getPlatformLogo());
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => {
-    setLogoPath(getPlatformLogo());
-  }, []);
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-  // Bloquear scroll de fondo cuando el drawer está abierto en móviles
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+    if (!isOpen) {
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+      return;
     }
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((element) => !element.hasAttribute('disabled'));
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    document.addEventListener('keydown', trapFocus);
     return () => {
-      document.body.style.overflow = '';
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('keydown', trapFocus);
     };
   }, [isOpen]);
 
   const handleLogout = async () => {
-    onClose();
+    onCloseRef.current();
     await logout();
     navigate('/login', { replace: true });
   };
 
   return (
     <>
-      {/* MÁSCARA / BACKDROP OVERLAY */}
       <div
-        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
         aria-hidden="true"
+        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={() => onCloseRef.current()}
       />
 
-      {/* DRAWER SLIDE PANEL */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw] bg-[var(--bg-secondary)] border-r border-[var(--border-light)] shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-in-out ${
+        ref={drawerRef}
+        id="tourist-navigation-drawer"
+        role="dialog"
+        aria-hidden={!isOpen}
+        aria-modal={isOpen}
+        aria-label="Navegación principal"
+        inert={!isOpen}
+        className={`fixed left-0 top-0 z-50 flex h-full w-80 max-w-[85vw] flex-col justify-between border-r border-[var(--border-light)] bg-[var(--bg-secondary)] shadow-2xl transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* DRAWER HEADER */}
-        <div className="p-5 border-b border-[var(--border-light)] bg-[var(--bg-primary)]/50">
-          <div className="flex items-center justify-between mb-4">
+        <div className="border-b border-[var(--border-light)] bg-[var(--bg-primary)]/50 p-5">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden bg-transparent border border-[var(--border-light)] p-0.5">
+              <div className="h-10 w-10 overflow-hidden rounded-xl border border-[var(--border-light)] bg-transparent p-0.5">
                 <img
                   src={logoPath}
                   alt="Turismo Cajamarca Logo"
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/web/icon-192.png';
+                  className="h-full w-full object-contain"
+                  onError={(event) => {
+                    (event.target as HTMLImageElement).src = '/web/icon-192.png';
                   }}
                 />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-[var(--text-primary)] my-0 leading-tight">
+                <h2 className="my-0 text-sm font-bold leading-tight text-[var(--text-primary)]">
                   Turismo Cajamarca
                 </h2>
                 <p className="text-[11px] text-[var(--text-secondary)]">Menú de Navegación</p>
               </div>
             </div>
             <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
+              ref={closeButtonRef}
+              type="button"
+              aria-label="Cerrar menú"
               title="Cerrar menú"
+              className="cursor-pointer rounded-xl bg-[var(--bg-hover)] p-2 text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              onClick={() => onCloseRef.current()}
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 
-          {/* PERFIL RESUMIDO DEL TURISTA */}
-          <div className="p-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-light)] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--color-primary)]/20 border border-[var(--color-primary-light)]/40 flex items-center justify-center text-[var(--color-primary-light)] font-bold text-sm shrink-0">
+          <div className="flex items-center gap-3 rounded-2xl border border-[var(--border-light)] bg-[var(--bg-card)] p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--color-primary-light)]/40 bg-[var(--color-primary)]/20 text-sm font-bold text-[var(--color-primary-light)]">
               {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'T'}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[var(--text-primary)] truncate">
+              <p className="truncate text-xs font-bold text-[var(--text-primary)]">
                 {profile?.full_name || 'Turista Registrado'}
               </p>
-              <p className="text-[11px] text-[var(--text-secondary)] truncate">
-                {user?.email || 'turista@ejemplo.pe'}
+              <p className="truncate text-[11px] text-[var(--text-secondary)]">
+                {user?.email || 'turista@ejemplo.com'}
               </p>
-              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[10px] font-semibold text-[var(--color-primary-light)]">
-                <Sparkles className="w-3 h-3" /> Turista
+              <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-primary-light)]">
+                <Sparkles className="h-3 w-3" aria-hidden="true" />
+                Turista
               </div>
             </div>
           </div>
+          <div className="mt-3">
+            <RoleSwitcher />
+          </div>
         </div>
 
-        {/* DRAWER MENU ITEMS LIST */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-thin">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] px-3 mb-2">
+        <nav className="scrollbar-thin flex-1 space-y-1.5 overflow-y-auto p-4">
+          <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
             Módulos del Turista
           </p>
-
-          {TOURIST_NAV_ITEMS.map((item) => {
+          {TOURIST_NAV_ITEMS.filter(
+            (item) => assistantEnabled || item.path !== '/turista/asistente',
+          ).map((item) => {
             const IconComponent = item.icon;
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.path === '/turista'}
-                onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center justify-between p-3 rounded-2xl transition group cursor-pointer ${
+                  `group flex cursor-pointer items-center justify-between rounded-2xl p-3 transition ${
                     isActive
-                      ? 'bg-[var(--color-primary)]/20 border border-[var(--color-primary)]/40 text-[var(--color-primary-light)] font-bold'
+                      ? 'border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/20 font-bold text-[var(--color-primary-light)]'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                   }`
                 }
+                onClick={() => onCloseRef.current()}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <IconComponent className="w-5 h-5 shrink-0" />
+                <div className="flex min-w-0 items-center gap-3">
+                  <IconComponent className="h-5 w-5 shrink-0" aria-hidden="true" />
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold my-0 leading-tight truncate">{item.label}</p>
-                    <p className="text-[10px] text-[var(--text-muted)] truncate">{item.description}</p>
+                    <p className="my-0 truncate text-xs font-semibold leading-tight">{item.label}</p>
+                    <p className="truncate text-[10px] text-[var(--text-muted)]">{item.description}</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 opacity-40 group-hover:opacity-100 transition shrink-0" />
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 opacity-40 transition group-hover:opacity-100"
+                  aria-hidden="true"
+                />
               </NavLink>
             );
           })}
         </nav>
 
-        {/* DRAWER FOOTER */}
-        <div className="p-4 border-t border-[var(--border-light)] bg-[var(--bg-primary)]/50 space-y-3">
+        <div className="space-y-3 border-t border-[var(--border-light)] bg-[var(--bg-primary)]/50 p-4">
           <button
-            onClick={handleLogout}
-            className="w-full py-2.5 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+            type="button"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+            onClick={() => void handleLogout()}
           >
-            <LogOut className="w-4 h-4" /> Cerrar Sesión
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Cerrar Sesión
           </button>
-
           <div className="text-center text-[10px] text-[var(--text-muted)]">
-            <p>Turismo Cajamarca PWA • v1.0.0</p>
+            <p>
+              {APP_NAME} PWA • v{APP_VERSION}
+            </p>
           </div>
         </div>
       </aside>

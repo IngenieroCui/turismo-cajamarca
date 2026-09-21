@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'robots.txt'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'web/icon-192.png', 'web/icon-512.png', 'web/icon-192-maskable.png', 'web/icon-512-maskable.png', 'web/apple-touch-icon.png'],
       manifest: {
         name: 'Turismo Cajamarca - Plataforma Turística PWA',
         short_name: 'TurismoCajamarca',
@@ -22,17 +22,17 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/web/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/web/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/web/icon-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
@@ -58,18 +58,6 @@ export default defineConfig({
                 maxEntries: 30,
                 maxAgeSeconds: 60 * 60 * 24 * 365,
               },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-              networkTimeoutSeconds: 5,
             },
           },
           {

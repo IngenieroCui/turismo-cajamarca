@@ -1,81 +1,105 @@
 import { supabase } from '../lib/supabase/client';
-import type { UserProfile, UserRole } from '../types/auth.types';
-import { UserRoleEnum } from '../types/auth.types';
+import { UserRoleEnum, type AssignedRole, type UserProfile, type UserRole } from '../types/auth.types';
 
-/**
- * Obtener el perfil completo del usuario, unificando `turismo_profiles` con su tabla secundaria.
- */
-export const getUserFullRoleProfile = async (
-  userId: string,
-  role: UserRole
-): Promise<UserProfile | null> => {
-  try {
-    // 1. Obtener perfil base desde `turismo_profiles`
-    const { data: baseProfile, error: baseError } = await supabase
-      .from('turismo_profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+interface BaseProfileRow {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  tenant_id: string | null;
+  document_type: UserProfile['document_type'];
+  document_number: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-    if (baseError || !baseProfile) {
-      console.warn('[profileService]: Error al obtener perfil base:', baseError?.message);
-      return null;
-    }
+export type RoleProfileDetails = BaseProfileRow &
+  Partial<Omit<UserProfile, keyof BaseProfileRow | 'roles' | 'permissions'>> & {
+    roles: AssignedRole[];
+  };
 
-    let extraData: Record<string, unknown> = {};
-
-    // 2. Obtener datos específicos según la tabla del rol
-    if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
-      const { data } = await supabase.from('turismo_tourist_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
-      const { data } = await supabase.from('turismo_provider_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) {
-        extraData = {
-          ...data,
-          sub_role: data.sub_type,
-        };
-      }
-    } else if (role === UserRoleEnum.MODERADOR) {
-      const { data } = await supabase.from('turismo_moderator_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.AUDITOR) {
-      const { data } = await supabase.from('turismo_auditor_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.SOPORTE) {
-      const { data } = await supabase.from('turismo_support_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.ANALISTA_DATOS) {
-      const { data } = await supabase.from('turismo_analyst_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.DESARROLLADOR) {
-      const { data } = await supabase.from('turismo_devops_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.SERVICIOS_IA) {
-      const { data } = await supabase.from('turismo_ai_service_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const { data } = await supabase.from('turismo_regulatory_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
-      const { data } = await supabase.from('turismo_affiliate_profiles').select('*').eq('profile_id', userId).maybeSingle();
-      if (data) extraData = data;
-    }
-
-    return {
-      ...baseProfile,
-      ...extraData,
-    } as UserProfile;
-  } catch (err) {
-    console.error('[profileService]: Error obteniendo perfil completo:', err);
-    return null;
-  }
+const extensionTable = (role: UserRole): string | null => {
+  if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) return 'turismo_tourist_profiles';
+  if (role === UserRoleEnum.PRESTADOR_TURISTICO) return 'turismo_provider_profiles';
+  if (role === UserRoleEnum.MODERADOR) return 'turismo_moderator_profiles';
+  if (role === UserRoleEnum.AUDITOR) return 'turismo_auditor_profiles';
+  if (role === UserRoleEnum.SOPORTE) return 'turismo_support_profiles';
+  if (role === UserRoleEnum.ANALISTA_DATOS) return 'turismo_analyst_profiles';
+  if (role === UserRoleEnum.DESARROLLADOR) return 'turismo_devops_profiles';
+  if (role === UserRoleEnum.SERVICIOS_IA) return 'turismo_ai_service_profiles';
+  if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) return 'turismo_regulatory_profiles';
+  if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) return 'turismo_affiliate_profiles';
+  return null;
 };
 
-/**
- * Actualizar los datos del perfil (los campos base + la tabla del rol específico).
- * NOTA DE SEGURIDAD: El correo electrónico (email) NUNCA se modifica en esta función.
- */
+const serviceError = (operation: string, error: { message?: string } | null) =>
+  new Error(`No fue posible ${operation}: ${error?.message || 'error desconocido de Supabase.'}`);
+
+const getActiveRolesForUsers = async (userIds: string[]): Promise<Map<string, AssignedRole[]>> => {
+  const result = new Map<string, AssignedRole[]>();
+  if (!userIds.length) return result;
+
+  const { data: assignments, error: assignmentError } = await supabase
+    .from('turismo_user_roles')
+    .select('user_id, role_id, is_primary')
+    .in('user_id', userIds)
+    .eq('is_active', true);
+  if (assignmentError) throw serviceError('cargar las asignaciones activas', assignmentError);
+
+  const roleIds = Array.from(new Set((assignments || []).map((assignment) => assignment.role_id)));
+  if (!roleIds.length) return result;
+
+  const { data: roles, error: roleError } = await supabase
+    .from('turismo_roles')
+    .select('*')
+    .in('id', roleIds)
+    .eq('is_active', true);
+  if (roleError) throw serviceError('cargar las definiciones activas de roles', roleError);
+
+  const roleMap = new Map((roles || []).map((role) => [role.id, role]));
+  for (const assignment of assignments || []) {
+    const role = roleMap.get(assignment.role_id);
+    if (!role) continue;
+    const current = result.get(assignment.user_id) || [];
+    current.push({ ...role, is_primary: assignment.is_primary } as AssignedRole);
+    result.set(assignment.user_id, current);
+  }
+  return result;
+};
+
+const mergeDetails = (
+  baseProfile: BaseProfileRow,
+  extension: Record<string, unknown> | null,
+  roles: AssignedRole[],
+): RoleProfileDetails => ({
+  ...baseProfile,
+  ...(extension || {}),
+  ...(extension && 'sub_type' in extension ? { sub_role: extension.sub_type as UserProfile['sub_role'] } : {}),
+  roles,
+});
+
+export const getUserFullRoleProfile = async (userId: string, role: UserRole): Promise<RoleProfileDetails | null> => {
+  const { data: baseProfile, error: baseError } = await supabase
+    .from('turismo_profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (baseError) throw serviceError('cargar el perfil base', baseError);
+  if (!baseProfile) return null;
+
+  const table = extensionTable(role);
+  const extension = table
+    ? (await supabase.from(table).select('*').eq('profile_id', userId).maybeSingle())
+    : { data: null, error: null };
+  if (extension.error) throw serviceError('cargar los detalles del perfil', extension.error);
+
+  const activeRoles = await getActiveRolesForUsers([userId]);
+  return mergeDetails(baseProfile as BaseProfileRow, extension.data as Record<string, unknown> | null, activeRoles.get(userId) || []);
+};
+
 export const updateUserRoleProfile = async (
   userId: string,
   role: UserRole,
@@ -88,225 +112,91 @@ export const updateUserRoleProfile = async (
     org_role?: string | null;
     rnt_number?: string | null;
   },
-  specificFields: Record<string, unknown>
+  specificFields: Record<string, unknown>,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // 1. Actualizar solo las columnas existentes en `turismo_profiles`
-    const { error: baseErr } = await supabase
-      .from('turismo_profiles')
-      .update({
-        full_name: baseFields.full_name,
-        phone: baseFields.phone,
-        document_type: baseFields.document_type,
-        document_number: baseFields.document_number,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    if (userId !== (await supabase.auth.getUser()).data.user?.id) throw new Error('Solo puedes editar tu propio perfil.');
+    const { error: baseError } = await supabase.rpc('turismo_update_own_profile', {
+      p_full_name: baseFields.full_name ?? null,
+      p_phone: baseFields.phone ?? null,
+      p_document_type: baseFields.document_type ?? null,
+      p_document_number: baseFields.document_number ?? null,
+    });
+    if (baseError) throw baseError;
 
-    if (baseErr) throw baseErr;
-
-    // 2. Upsert en la tabla del rol correspondiente
     if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_tourist_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
+      const touristFields = ['country_of_origin', 'nationality', 'preferred_language', 'emergency_contact_name', 'emergency_contact_phone'] as const;
+      const payload = Object.fromEntries(touristFields.filter((key) => specificFields[key] !== undefined).map((key) => [key, specificFields[key]]));
+      if (Object.keys(payload).length) {
+        const { error } = await supabase.from('turismo_tourist_profiles').upsert([{ profile_id: userId, ...payload }], { onConflict: 'profile_id' });
+        if (error) throw error;
+      }
     } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
-      const defaultRuc = baseFields.document_number || '20000000000';
-      const defaultRazonSocial = baseFields.full_name || 'Prestador Cajamarca';
-      const payload = {
-        profile_id: userId,
-        ruc: specificFields.ruc || defaultRuc,
-        razon_social: specificFields.razon_social || defaultRazonSocial,
-        sub_type: baseFields.sub_role || specificFields.sub_type || 'alojamiento',
-        org_role: baseFields.org_role || specificFields.org_role || 'dueno',
-        rnt_number: baseFields.rnt_number || specificFields.rnt_number || 'RNT-PENDIENTE',
-        ...specificFields,
-        updated_at: new Date().toISOString(),
-      };
-      const { error } = await supabase.from('turismo_provider_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.MODERADOR) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_moderator_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.AUDITOR) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_auditor_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.SOPORTE) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_support_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.ANALISTA_DATOS) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_analyst_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.DESARROLLADOR) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_devops_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.SERVICIOS_IA) {
-      const payload = { profile_id: userId, ...specificFields, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from('turismo_ai_service_profiles').upsert([payload], { onConflict: 'profile_id' });
-      if (error) throw error;
-    } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const defaultEntity = role === UserRoleEnum.CAMARA_COMERCIO ? 'CAMARA_COMERCIO' : 'MINCIT';
-      const defaultInstId = specificFields.institutional_id || `REG-${userId.substring(0, 6).toUpperCase()}`;
-      const payload = {
-        profile_id: userId,
-        entity_type: defaultEntity,
-        institutional_id: defaultInstId,
-        ...specificFields,
-        updated_at: new Date().toISOString(),
-      };
-      const { error } = await supabase.from('turismo_regulatory_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.rpc('turismo_update_own_provider_profile', {
+        p_ruc: String(specificFields.ruc || ''),
+        p_razon_social: String(specificFields.razon_social || ''),
+        p_nombre_comercial: (specificFields.nombre_comercial as string) || null,
+        p_sub_type: (specificFields.sub_type || baseFields.sub_role) as string || null,
+        p_org_role: (specificFields.org_role || baseFields.org_role) as string || null,
+        p_rnt_number: (specificFields.rnt_number || baseFields.rnt_number) as string || null,
+        p_address: (specificFields.address as string) || null,
+        p_latitude: (specificFields.latitude as number) || null,
+        p_longitude: (specificFields.longitude as number) || null,
+        p_website_url: (specificFields.website_url as string) || null,
+        p_social_links: specificFields.social_links || {},
+        p_specific_metadata: specificFields.specific_metadata || {},
+      });
       if (error) throw error;
     } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
-      const defaultRefCode = `REF-${userId.substring(0, 6).toUpperCase()}`;
-      const payload = {
-        profile_id: userId,
-        referral_code: specificFields.referral_code || defaultRefCode,
-        ...specificFields,
-        updated_at: new Date().toISOString(),
-      };
-      const { error } = await supabase.from('turismo_affiliate_profiles').upsert([payload], { onConflict: 'profile_id' });
+      const { error } = await supabase.rpc('turismo_update_own_affiliate_preferences', {
+        p_payout_method: specificFields.payout_method as string || null,
+        p_payout_account_info: specificFields.payout_account_info || null,
+      });
       if (error) throw error;
     }
-
     return { success: true };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al actualizar perfil.';
-    console.error('[profileService]: Error en updateUserRoleProfile:', err);
-    return { success: false, error: message };
+    return { success: false, error: err instanceof Error ? err.message : 'Error al actualizar perfil.' };
   }
 };
 
-/**
- * Obtener todos los perfiles registrados bajo la tabla específica de un rol.
- * Si un usuario tiene un registro en la tabla de extensión del rol (o su profile.role coincide),
- * se retorna su perfil unificado para inspección de historial y estado activo/inactivo del rol.
- */
-export const getFullProfilesByRole = async (role: UserRole): Promise<UserProfile[]> => {
-  try {
-    let profileIdsFromExtension: string[] = [];
-    let extensionMap: Record<string, Record<string, unknown>> = {};
+export const getFullProfilesByRole = async (role: UserRole): Promise<RoleProfileDetails[]> => {
+  const { data: roleRow, error: roleError } = await supabase
+    .from('turismo_roles')
+    .select('id, is_active')
+    .eq('code', role)
+    .single();
+  if (roleError) throw serviceError('cargar el rol de revisión', roleError);
+  if (!roleRow || !roleRow.is_active) return [];
 
-    // 1. Consultar la tabla de extensión específica del rol para obtener todos sus registros
-    if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
-      const { data } = await supabase.from('turismo_tourist_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.PRESTADOR_TURISTICO) {
-      const { data } = await supabase.from('turismo_provider_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = {
-            ...row,
-            sub_role: row.sub_type,
-          };
-        });
-      }
-    } else if (role === UserRoleEnum.MODERADOR) {
-      const { data } = await supabase.from('turismo_moderator_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.AUDITOR) {
-      const { data } = await supabase.from('turismo_auditor_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.SOPORTE) {
-      const { data } = await supabase.from('turismo_support_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.ANALISTA_DATOS) {
-      const { data } = await supabase.from('turismo_analyst_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.DESARROLLADOR) {
-      const { data } = await supabase.from('turismo_devops_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.SERVICIOS_IA) {
-      const { data } = await supabase.from('turismo_ai_service_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.FUNCIONARIO_MINCIT || role === UserRoleEnum.CAMARA_COMERCIO) {
-      const { data } = await supabase.from('turismo_regulatory_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    } else if (role === UserRoleEnum.EMBAJADOR || role === UserRoleEnum.AFILIADO) {
-      const { data } = await supabase.from('turismo_affiliate_profiles').select('*');
-      if (data) {
-        data.forEach((row) => {
-          profileIdsFromExtension.push(row.profile_id);
-          extensionMap[row.profile_id] = row;
-        });
-      }
-    }
+  const { data: assignments, error: assignmentError } = await supabase
+    .from('turismo_user_roles')
+    .select('user_id')
+    .eq('role_id', roleRow.id)
+    .eq('is_active', true);
+  if (assignmentError) throw serviceError('cargar los usuarios asignados al rol', assignmentError);
+  const ids = (assignments || []).map((assignment) => assignment.user_id);
+  if (!ids.length) return [];
 
-    // 2. También incluir cualquier usuario cuyo turismo_profiles.role === role
-    const { data: baseProfilesWithRole } = await supabase
-      .from('turismo_profiles')
-      .select('id')
-      .eq('role', role);
+  const { data: profiles, error: profileError } = await supabase
+    .from('turismo_profiles')
+    .select('*')
+    .in('id', ids)
+    .order('created_at', { ascending: false });
+  if (profileError) throw serviceError('cargar los perfiles de revisión', profileError);
+  if (!profiles) return [];
 
-    const baseRoleIds = (baseProfilesWithRole || []).map((p) => p.id);
-    const allUniqueIds = Array.from(new Set([...profileIdsFromExtension, ...baseRoleIds]));
+  const table = extensionTable(role);
+  const extensionResult = table
+    ? await supabase.from(table).select('*').in('profile_id', ids)
+    : { data: [], error: null };
+  if (extensionResult.error) throw serviceError('cargar los detalles de revisión', extensionResult.error);
+  const extensionMap = new Map((extensionResult.data || []).map((extension) => [extension.profile_id, extension as Record<string, unknown>]));
+  const roleMap = await getActiveRolesForUsers(ids);
 
-    if (allUniqueIds.length === 0) {
-      return [];
-    }
-
-    // 3. Obtener el perfil base de todos los IDs únicos encontrados
-    const { data: baseProfiles, error: baseErr } = await supabase
-      .from('turismo_profiles')
-      .select('*')
-      .in('id', allUniqueIds)
-      .order('created_at', { ascending: false });
-
-    if (baseErr || !baseProfiles) {
-      return [];
-    }
-
-    return baseProfiles.map((base) => ({
-      ...base,
-      ...(extensionMap[base.id] || {}),
-    })) as UserProfile[];
-  } catch (err) {
-    console.error('[profileService]: Error en getFullProfilesByRole:', err);
-    return [];
-  }
+  return profiles.map((profile) => mergeDetails(
+    profile as BaseProfileRow,
+    extensionMap.get(profile.id) || null,
+    roleMap.get(profile.id) || [],
+  ));
 };

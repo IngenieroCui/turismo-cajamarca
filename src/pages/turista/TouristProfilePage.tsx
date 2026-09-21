@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../context/useAuthStore';
+import { formatDocumentType } from '../../utils/uiFormatters';
 import {
   User,
   Shield,
@@ -14,9 +15,17 @@ import {
   FileText,
   Sparkles,
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase/client';
+import type { TravelPreference } from '../../types/intelligence.types';
+
+const preferenceOptions: Array<[TravelPreference, string]> = [
+  ['naturaleza', 'Naturaleza'], ['aventura', 'Aventura'], ['gastronomia', 'Gastronomía'],
+  ['cultura', 'Cultura'], ['descanso', 'Descanso'], ['familia', 'Familia'],
+  ['artesania', 'Artesanía'], ['eventos', 'Eventos'], ['alojamiento', 'Alojamiento'],
+];
 
 export const TouristProfilePage: React.FC = () => {
-  const { user, profile, updateProfile, loading } = useAuthStore();
+  const { user, profile, updateProfile, fetchProfile, loading } = useAuthStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -32,10 +41,12 @@ export const TouristProfilePage: React.FC = () => {
   const [preferredLanguage, setPreferredLanguage] = useState('es');
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
+  const [preferences, setPreferences] = useState<TravelPreference[]>([]);
 
   // Sincronizar estados locales con el perfil del store
   useEffect(() => {
     if (profile) {
+      queueMicrotask(() => {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
       setDocumentType((profile.document_type as 'DNI' | 'RUC' | 'PASAPORTE' | 'CE') || 'DNI');
@@ -45,6 +56,8 @@ export const TouristProfilePage: React.FC = () => {
       setPreferredLanguage(profile.preferred_language || 'es');
       setEmergencyContactName(profile.emergency_contact_name || '');
       setEmergencyContactPhone(profile.emergency_contact_phone || '');
+      setPreferences((profile.travel_preferences || []).filter((value): value is TravelPreference => preferenceOptions.some(([option]) => option === value)));
+      });
     }
   }, [profile]);
 
@@ -66,6 +79,9 @@ export const TouristProfilePage: React.FC = () => {
     });
 
     if (result.success) {
+      const { error: preferencesError } = await supabase.rpc('turismo_update_tourist_preferences', { p_preferences: preferences });
+      if (preferencesError) { setErrorMessage(preferencesError.message); return; }
+      if (user) await fetchProfile(user.id);
       setSuccessMessage('¡Tus datos de usuario han sido actualizados exitosamente en la base de datos!');
       setIsEditing(false);
       setTimeout(() => setSuccessMessage(null), 5000);
@@ -133,9 +149,10 @@ export const TouristProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo</label>
+              <label htmlFor="tourist-profile-full-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre Completo</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-full-name"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -159,15 +176,16 @@ export const TouristProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono / WhatsApp</label>
+              <label htmlFor="tourist-profile-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono / WhatsApp</label>
               {isEditing ? (
                 <div className="relative">
                   <input
+                    id="tourist-profile-phone"
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
-                    placeholder="+57 3107613371"
+                    placeholder="Ingresa tu número"
                   />
                   <Phone className="w-4 h-4 absolute left-3 top-3 text-[var(--text-muted)]" />
                 </div>
@@ -180,30 +198,31 @@ export const TouristProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo de Documento</label>
+              <label htmlFor="tourist-profile-document-type" className="block text-xs font-semibold text-[var(--text-secondary)]">Tipo de Documento</label>
               {isEditing ? (
                 <select
+                  id="tourist-profile-document-type"
                   value={documentType}
                   onChange={(e) => setDocumentType(e.target.value as 'DNI' | 'RUC' | 'PASAPORTE' | 'CE')}
                   className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
                 >
-                  <option value="DNI">CC / DNI</option>
+                  <option value="DNI">Cédula de ciudadanía</option>
                   <option value="PASAPORTE">Pasaporte</option>
-                  <option value="CE">Carnet Extranjería</option>
-                  <option value="RUC">RUC</option>
+                  <option value="CE">Cédula de extranjería</option>
                 </select>
               ) : (
                 <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-sm text-[var(--text-primary)] flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[var(--color-primary-light)]" />
-                  <span>{profile?.document_type || 'DNI'}</span>
+                  <span>{formatDocumentType(profile?.document_type || 'DNI')}</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">N° de Documento</label>
+              <label htmlFor="tourist-profile-document-number" className="block text-xs font-semibold text-[var(--text-secondary)]">N° de Documento</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-document-number"
                   type="text"
                   value={documentNumber}
                   onChange={(e) => setDocumentNumber(e.target.value)}
@@ -227,9 +246,10 @@ export const TouristProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
+              <label htmlFor="tourist-profile-country" className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-country"
                   type="text"
                   value={countryOfOrigin}
                   onChange={(e) => setCountryOfOrigin(e.target.value)}
@@ -244,9 +264,10 @@ export const TouristProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
+              <label htmlFor="tourist-profile-nationality" className="block text-xs font-semibold text-[var(--text-secondary)]">Nacionalidad</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-nationality"
                   type="text"
                   value={nationality}
                   onChange={(e) => setNationality(e.target.value)}
@@ -261,9 +282,10 @@ export const TouristProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Principal</label>
+              <label htmlFor="tourist-profile-language" className="block text-xs font-semibold text-[var(--text-secondary)]">Idioma Principal</label>
               {isEditing ? (
                 <select
+                  id="tourist-profile-language"
                   value={preferredLanguage}
                   onChange={(e) => setPreferredLanguage(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
@@ -299,9 +321,10 @@ export const TouristProfilePage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre del Contacto</label>
+              <label htmlFor="tourist-profile-emergency-name" className="block text-xs font-semibold text-[var(--text-secondary)]">Nombre del Contacto</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-emergency-name"
                   type="text"
                   value={emergencyContactName}
                   onChange={(e) => setEmergencyContactName(e.target.value)}
@@ -316,14 +339,15 @@ export const TouristProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Emergencia</label>
+              <label htmlFor="tourist-profile-emergency-phone" className="block text-xs font-semibold text-[var(--text-secondary)]">Teléfono de Emergencia</label>
               {isEditing ? (
                 <input
+                  id="tourist-profile-emergency-phone"
                   type="tel"
                   value={emergencyContactPhone}
                   onChange={(e) => setEmergencyContactPhone(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--color-primary-light)] transition"
-                  placeholder="+57 3123456789"
+                  placeholder="Ingresa tu número"
                 />
               ) : (
                 <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-light)] text-sm text-[var(--text-primary)]">
@@ -335,6 +359,13 @@ export const TouristProfilePage: React.FC = () => {
         </div>
 
         {/* BOTÓN GUARDAR CAMBIOS CUANDO ESTÁ EN EDICIÓN */}
+        <div className="p-6 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-xl space-y-4">
+          <h3 className="text-sm font-bold text-[var(--color-primary-light)] uppercase tracking-wider flex items-center gap-2 border-b border-[var(--border-light)] pb-2"><Sparkles className="w-4 h-4" /> ¿Qué tipo de experiencias te interesan?</h3>
+          <p className="text-xs text-[var(--text-secondary)]">Selecciona los intereses que usaremos para ordenar tus recomendaciones.</p>
+          <div className="flex flex-wrap gap-2">{preferenceOptions.map(([value, label]) => <button type="button" key={value} disabled={!isEditing} onClick={() => setPreferences((current) => current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value])} className={`px-3.5 py-2 rounded-full text-xs font-bold border transition ${preferences.includes(value) ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-light)]'} ${!isEditing ? 'opacity-80 cursor-default' : 'cursor-pointer'}`}>{label}</button>)}</div>
+          {!preferences.length && <p className="text-xs text-[var(--text-muted)]">Selecciona tus intereses para mejorar tus recomendaciones.</p>}
+        </div>
+
         {isEditing && (
           <div className="flex justify-end gap-3 pt-2">
             <button

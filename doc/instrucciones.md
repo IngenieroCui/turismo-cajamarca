@@ -1,31 +1,20 @@
-Actúa como un Arquitecto de Software Senior experto en React, Vite, TypeScript y Supabase. 
+# Instrucciones de desarrollo
 
-Vamos a construir una PWA de turismo con un sistema RBAC de 12 roles (Super Admin, Admin, Moderador, Prestador/Sub-roles, Turista, Auditor, Soporte, BI, Servicio IA, DevOps, Embajador, Entidades Reguladoras). La autenticación se gestionará vía Supabase Auth (Correo y Contraseña).
+La aplicación usa React 19, Vite, TypeScript, Zustand, Supabase Auth/PostgreSQL/RLS/RPC, React Router, Tailwind y Zod.
 
-ARQUITECTURA Y TECNOLOGÍAS:
-- Build Tool: Vite + React (TypeScript) + `vite-plugin-pwa`
-- Estilos: Tailwind CSS + Lucide Icons
-- Enrutamiento: React Router DOM (v6+)
-- Estado Global & Auth: Zustand + Supabase JS Client (`@supabase/supabase-js`)
-- Validaciones: Zod
+## Base de datos
 
-TAREAS A GENERAR EN ESTA ITERACIÓN:
+Para una base nueva ejecuta `sql/00_master_schema_all_in_one.sql`. Para actualizar una base creada con el esquema anterior ejecuta `sql/08_refactor_rbac_multi_role.sql`.
 
-1. Configuración de Supabase Client (`src/lib/supabase/client.ts`):
-   - Inicializa el cliente de Supabase usando variables de entorno (`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`).
+La autorización es multi-rol: un perfil puede tener N asignaciones en `turismo_user_roles`, cada una apunta a un rol de `turismo_roles`, y los permisos se heredan desde `turismo_role_permissions`. Una asignación activa puede ser primaria. El frontend ensambla `profile.roles` y `profile.permissions`; ya no se leen `turismo_profiles.role` ni `turismo_profiles.permissions`.
 
-2. Definición de Tipos y Roles (`src/types/auth.types.ts`):
-   - Define el enum/union de los 12 roles del sistema.
-   - Crea las interfaces para el perfil de usuario (`UserProfile`) asociado a la tabla `profiles` de Supabase, incluyendo `role`, `tenant_id` y `permissions`.
+Los cambios de roles, permisos y estados deben pasar por las RPC seguras. El registro público siempre crea un turista; nunca se confía en un rol enviado en metadata de Auth.
 
-3. Store de Autenticación con Zustand (`src/context/useAuthStore.ts`):
-   - Maneja el estado de la sesión activa de Supabase (`session`, `user`, `profile`, `loading`).
-   - Métodos para: `loginWithEmail(email, password)`, `signUp(email, password, role)`, `logout()`, y verificación de sesión al cargar la app (`listenToAuthChanges`).
+## Comandos
 
-4. Componente de Protección de Rutas (`src/components/guard/ProtectedRoute.tsx`):
-   - Envoltorio para React Router que verifica si hay usuario autenticado y si su rol tiene permiso para acceder a la ruta. Redirige a `/login` o a `/unauthorized`.
-
-5. Configuración PWA en `vite.config.ts`:
-   - Configura `vite-plugin-pwa` con `registerType: 'autoUpdate'`, configurando el Web App Manifest (nombre, theme_color, iconos) y estrategias de caché con Workbox para la PWA.
-
-Aplica código limpio, tipado estricto en TypeScript y separación clara de responsabilidades.
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+```

@@ -1,44 +1,56 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './context/useAuthStore';
 import { UserRoleEnum } from './types/auth.types';
 import ProtectedRoute from './components/guard/ProtectedRoute';
+import PublicOnlyRoute from './components/guard/PublicOnlyRoute';
+import PageLoader from './components/PageLoader';
 
 // Componentes por Carpeta (Estructura organizada del proyecto)
 import Login from './pages/login/Login';
 import SignUp from './pages/login/SignUp';
 import Unauthorized from './pages/Unauthorized';
 
-import UsuarioPage from './pages/usuario/UsuarioPage';
+const UsuarioPage = lazy(() => import('./pages/usuario/UsuarioPage'));
 
 // Módulo Turista y Sub-rutas con Layout & Drawer
-import TouristLayout from './pages/turista/TouristLayout';
-import TuristaPage from './pages/turista/TuristaPage';
-import TouristProfilePage from './pages/turista/TouristProfilePage';
-import AtractivosPage from './pages/turista/AtractivosPage';
-import AlojamientosPage from './pages/turista/AlojamientosPage';
-import GastronomiaPage from './pages/turista/GastronomiaPage';
-import ToursPage from './pages/turista/ToursPage';
-import EventosPage from './pages/turista/EventosPage';
-import ArtesaniasPage from './pages/turista/ArtesaniasPage';
-import AsistenciaPage from './pages/turista/AsistenciaPage';
+const TouristLayout = lazy(() => import('./pages/turista/TouristLayout'));
+const TuristaPage = lazy(() => import('./pages/turista/TuristaPage'));
+const TouristProfilePage = lazy(() => import('./pages/turista/TouristProfilePage'));
+const AtractivosPage = lazy(() => import('./pages/turista/AtractivosPage'));
+const AlojamientosPage = lazy(() => import('./pages/turista/AlojamientosPage'));
+const GastronomiaPage = lazy(() => import('./pages/turista/GastronomiaPage'));
+const ToursPage = lazy(() => import('./pages/turista/ToursPage'));
+const EventosPage = lazy(() => import('./pages/turista/EventosPage'));
+const ArtesaniasPage = lazy(() => import('./pages/turista/ArtesaniasPage'));
+const AsistenciaPage = lazy(() => import('./pages/turista/AsistenciaPage'));
+const MisReservasPage = lazy(() => import('./pages/turista/MisReservasPage'));
+const FavoritosPage = lazy(() => import('./pages/turista/FavoritosPage'));
+const AsistentePage = lazy(() => import('./pages/turista/AsistentePage'));
 
-import PrestadorTuristicoPage from './pages/prestador_turistico/PrestadorTuristicoPage';
-import AdminPage from './pages/admin/AdminPage';
-import SuperAdminPage from './pages/super_admin/SuperAdminPage';
-import ModeradorPage from './pages/moderador/ModeradorPage';
-import AuditorPage from './pages/auditor/AuditorPage';
-import SoportePage from './pages/soporte/SoportePage';
-import AnalistaDatosPage from './pages/analista_datos/AnalistaDatosPage';
-import ServiciosIaPage from './pages/servicios_ia/ServiciosIaPage';
-import DesarrolladorPage from './pages/desarrollador/DesarrolladorPage';
-import EmbajadorPage from './pages/embajador/EmbajadorPage';
-import AfiliadoPage from './pages/afiliado/AfiliadoPage';
-import FuncionarioMincitPage from './pages/funcionario_mincit/FuncionarioMincitPage';
-import CamaraComercioPage from './pages/camara_comercio/CamaraComercioPage';
+const PrestadorTuristicoPage = lazy(() => import('./pages/prestador_turistico/PrestadorTuristicoPage'));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+const SuperAdminPage = lazy(() => import('./pages/super_admin/SuperAdminPage'));
+const ModeradorPage = lazy(() => import('./pages/moderador/ModeradorPage'));
+const AuditorPage = lazy(() => import('./pages/auditor/AuditorPage'));
+const SoportePage = lazy(() => import('./pages/soporte/SoportePage'));
+const AnalistaDatosPage = lazy(() => import('./pages/analista_datos/AnalistaDatosPage'));
+const ServiciosIaPage = lazy(() => import('./pages/servicios_ia/ServiciosIaPage'));
+const DesarrolladorPage = lazy(() => import('./pages/desarrollador/DesarrolladorPage'));
+const EmbajadorPage = lazy(() => import('./pages/embajador/EmbajadorPage'));
+const AfiliadoPage = lazy(() => import('./pages/afiliado/AfiliadoPage'));
+const FuncionarioMincitPage = lazy(() => import('./pages/funcionario_mincit/FuncionarioMincitPage'));
+const CamaraComercioPage = lazy(() => import('./pages/camara_comercio/CamaraComercioPage'));
+import { getDefaultRoleRoute } from './utils/roleRouting';
+import ReferralTracker from './components/referral/ReferralTracker';
+import MaintenanceBanner from './components/MaintenanceBanner';
+import { usePlatformConfig } from './context/usePlatformConfig';
+import { useProviderContext } from './context/useProviderContext';
 
 export const App: React.FC = () => {
-  const { listenToAuthChanges, user, profile } = useAuthStore();
+  const { listenToAuthChanges, user, profile, loading, initialized } = useAuthStore();
+  const loadPlatformConfig = usePlatformConfig((state) => state.load);
+  const resetProviderContext = useProviderContext((state) => state.reset);
 
   useEffect(() => {
     // Listener de cambios de autenticación en Supabase
@@ -48,19 +60,26 @@ export const App: React.FC = () => {
     };
   }, [listenToAuthChanges]);
 
+  useEffect(() => { void loadPlatformConfig(); }, [loadPlatformConfig]);
+  useEffect(() => { resetProviderContext(); }, [user?.id, resetProviderContext]);
+
   // Determinar ruta de dashboard por defecto del usuario autenticado
-  const userDefaultRoute = profile?.role ? `/${profile.role}` : '/turista';
+  const userDefaultRoute = getDefaultRoleRoute(profile?.roles);
 
   return (
     <BrowserRouter>
-      <Routes>
+      <ReferralTracker />
+      <MaintenanceBanner />
+      <Suspense fallback={<PageLoader />}><Routes>
         {/* Lo primero que carga es la ventana de Login */}
         <Route
           path="/"
-          element={user ? <Navigate to={userDefaultRoute} replace /> : <Login />}
+          element={loading || !initialized ? <PageLoader /> : user && profile ? <Navigate to={userDefaultRoute} replace /> : <Login />}
         />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Route>
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/dashboard" element={user ? <Navigate to={userDefaultRoute} replace /> : <Navigate to="/login" replace />} />
 
@@ -81,6 +100,9 @@ export const App: React.FC = () => {
             <Route path="eventos" element={<EventosPage />} />
             <Route path="artesanias" element={<ArtesaniasPage />} />
             <Route path="asistencia" element={<AsistenciaPage />} />
+            <Route path="reservas" element={<MisReservasPage />} />
+            <Route path="favoritos" element={<FavoritosPage />} />
+            <Route path="asistente" element={<AsistentePage />} />
           </Route>
         </Route>
 
@@ -96,7 +118,7 @@ export const App: React.FC = () => {
           <Route path="/super_admin" element={<SuperAdminPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.MODERADOR]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.MODERADOR, UserRoleEnum.ADMIN, UserRoleEnum.SUPER_ADMIN]} requiredPermissions={['content:moderate']} />}>
           <Route path="/moderador" element={<ModeradorPage />} />
         </Route>
 
@@ -104,19 +126,19 @@ export const App: React.FC = () => {
           <Route path="/auditor" element={<AuditorPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SOPORTE]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SOPORTE, UserRoleEnum.ADMIN, UserRoleEnum.SUPER_ADMIN]} requiredPermissions={['support:tickets_manage']} />}>
           <Route path="/soporte" element={<SoportePage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.ANALISTA_DATOS]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.ANALISTA_DATOS, UserRoleEnum.ADMIN, UserRoleEnum.SUPER_ADMIN]} requiredPermissions={['bi:analytics_read']} />}>
           <Route path="/analista_datos" element={<AnalistaDatosPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SERVICIOS_IA]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.SUPER_ADMIN]} />}>
           <Route path="/servicios_ia" element={<ServiciosIaPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.DESARROLLADOR]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.DESARROLLADOR, UserRoleEnum.SUPER_ADMIN]} requiredPermissions={['devops:infra_manage']} />}>
           <Route path="/desarrollador" element={<DesarrolladorPage />} />
         </Route>
 
@@ -138,7 +160,7 @@ export const App: React.FC = () => {
 
         {/* Fallback 404 -> Redirigir a ventana principal de Login */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      </Routes></Suspense>
     </BrowserRouter>
   );
 };

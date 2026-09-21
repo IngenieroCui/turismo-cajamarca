@@ -1,19 +1,29 @@
-# Scripts de Base de Datos PostgreSQL / Supabase - Turismo Cajamarca PWA
+# SQL de Turismo Cajamarca
 
-Esta carpeta contiene la arquitectura completa de base de datos dividida en scripts numéricos modulares para facilidades de migración, mantenimiento y despliegue en entornos de desarrollo o producción.
+## Ejecucion
 
-## Estructura de Scripts
+- Base nueva: ejecutar `00_master_schema_all_in_one.sql`.
+- Base existente: ejecutar `08_refactor_rbac_multi_role.sql`, `09_core_tourism_marketplace.sql`, `10_platform_operations_growth.sql`, `11_experience_intelligence_engagement.sql`, `12_platform_functional_closure.sql` y `13_stabilization_data_integrity.sql`, en ese orden.
+- `00_master_schema_all_in_one.sql` incorpora las fases 11, 12 y 13; no ejecutes esas migraciones dos veces sobre una base nueva.
 
-1. **`00_master_schema_all_in_one.sql`**: Script completo unificado (All-in-One). **Opción recomendada para ejecutar en 1-solo click** dentro del SQL Editor de Supabase.
-2. **`01_create_enums_and_types.sql`**: Definición de Tipos ENUM para los 15 roles del sistema, subtipos de servicios turísticos, estados de RNT y tipos de documento.
-3. **`02_create_profiles_table.sql`**: Tabla base de perfiles de usuario (`public.profiles`) vinculada 1-a-1 con `auth.users(id)` y triggers de `updated_at`.
-4. **`03_create_role_extension_tables.sql`**: Tablas especializadas por rol (`tourist_profiles`, `provider_profiles`, `affiliate_profiles`, `regulatory_profiles`, `audit_logs`).
-5. **`04_create_auth_trigger.sql`**: Función y trigger pl/pgsql `handle_new_user()` que crea automáticamente la entrada de perfil al registrarse en Supabase Auth.
-6. **`05_enable_rls_and_policies.sql`**: Habilitación de seguridad nivel de fila (Row Level Security - RLS) y políticas de privacidad.
+Los scripts 01-07 se conservan como historial incremental; no deben usarse para reconstruir una base nueva.
 
-## Instrucciones de Ejecución en Supabase
+La migración 13 es la fase final de estabilización y corrige integridad de datos, ciclo de comisiones, scoping de colaboradores, banderas, auditoría, salud de plataforma y privilegios de privacidad.
 
-1. Abre el panel de tu proyecto en [Supabase Dashboard](https://supabase.com/dashboard).
-2. Ve a la sección **SQL Editor** en la barra lateral.
-3. Copia el contenido de `00_master_schema_all_in_one.sql` (o ejecuta secuencialmente los scripts del `01` al `05`).
-4. Haz click en **Run**.
+## Autorizacion
+
+`turismo_profiles` contiene identidad y datos personales. La asignacion es `turismo_profiles (1) -> turismo_user_roles (N) -> turismo_roles (1)`. Los roles heredan permisos mediante `turismo_role_permissions` y `turismo_permissions`. Cada usuario puede tener varios roles activos y una sola asignacion primaria activa.
+
+Las mutaciones privilegiadas se realizan mediante RPC `SECURITY DEFINER` y las lecturas se protegen con RLS. El perfil propio se actualiza mediante `turismo_update_own_profile`.
+
+## Marketplace turistico
+
+`09_core_tourism_marketplace.sql` crea catalogo, reservas, favoritos y resenas, junto con RPC, RLS y datos editoriales iniciales. La migracion es transaccional.
+
+## Operaciones, cumplimiento, crecimiento y BI
+
+`10_platform_operations_growth.sql` agrega soporte y reembolsos pendientes de procesamiento financiero, auditoria e informes append-only, cumplimiento RNT/Registro Mercantil, referidos y comisiones, y analitica BI agregada. No ejecuta pagos ni integra servicios externos.
+
+`11_experience_intelligence_engagement.sql` agrega disponibilidad explícita, promociones, preferencias, recomendaciones determinísticas, itinerarios, asistente de catálogo, métricas reales y notificaciones. Tiene un único bloque transaccional (`BEGIN`/`COMMIT`) y reemplaza la RPC de reservas conservando la atribución de referidos.
+
+`12_platform_functional_closure.sql` agrega configuración y banderas server-side, equipos internos de prestadores, pagos manuales/externos, exportación y solicitudes de privacidad, salud operativa y marcadores de versión de esquema. Es transaccional con un único bloque `BEGIN`/`COMMIT` y no integra pasarelas de pago.

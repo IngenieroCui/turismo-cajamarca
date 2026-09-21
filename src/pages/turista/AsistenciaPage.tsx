@@ -1,113 +1,32 @@
-import React from 'react';
-import {
-  PhoneCall,
-  ShieldCheck,
-  MessageCircle,
-  AlertTriangle,
-  FileText,
-  Sparkles,
-  HeartPulse,
-} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FileText, MessageCircle, PhoneCall, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import { getMyReservations } from '../../services/marketplaceService';
+import { getMySupportTickets } from '../../services/supportService';
+import type { Reservation } from '../../types/tourism.types';
+import type { SupportTicket } from '../../types/operations.types';
+import SupportTicketModal from '../../components/support/SupportTicketModal';
+import TicketDetailModal from '../../components/support/TicketDetailModal';
+import { usePlatformConfig } from '../../context/usePlatformConfig';
+import { formatSupportCategory, formatSupportPriority, formatSupportStatus } from '../../utils/uiFormatters';
 
-export const AsistenciaPage: React.FC = () => {
-  const emergencyNumbers = [
-    { title: 'Policía Turística & Estación Cajamarca', number: '123 / (+57) 310 211 4567', icon: ShieldCheck, color: 'text-blue-400 border-blue-500/20 bg-blue-500/10' },
-    { title: 'Hospital Santa Lucía de Cajamarca', number: '(+57) 314 892 1234', icon: HeartPulse, color: 'text-rose-400 border-rose-500/20 bg-rose-500/10' },
-    { title: 'Cuerpo de Bomberos Cajamarca', number: '(+57) 311 445 6789', icon: AlertTriangle, color: 'text-amber-400 border-amber-500/20 bg-amber-500/10' },
-    { title: 'Defensa Civil Colombiana (Seccional Tolima)', number: '(+57) 315 789 0123', icon: PhoneCall, color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' },
-  ];
-
-  const handleWhatsAppHelp = () => {
-    const message = encodeURIComponent(
-      'Hola, requiero asistencia al viajero en el municipio de Cajamarca Tolima.'
-    );
-    window.open(`https://wa.me/573025091063?text=${message}`, '_blank');
-  };
-
-  return (
-    <div className="space-y-8 pb-8">
-      {/* HEADER ASISTENCIA */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-teal-500/20 via-[var(--bg-secondary)] to-[var(--bg-secondary)] border border-teal-500/30 shadow-xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-500/30 text-teal-400 flex items-center justify-center shrink-0">
-              <PhoneCall className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-bold mb-1">
-                <Sparkles className="w-3 h-3" /> Atención 24/7 al Viajero
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] my-0">
-                Asistencia & Emergencias en Cajamarca Tolima
-              </h1>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
-                Líneas directas de auxilio, policía turística y puntos de información en el municipio.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* BANNER CANAL OFICIAL WHATSAPP */}
-      <div className="p-6 rounded-3xl bg-emerald-600/20 border border-emerald-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1 text-center sm:text-left">
-          <h3 className="text-base font-bold text-emerald-300 my-0 flex items-center justify-center sm:justify-start gap-2">
-            <MessageCircle className="w-5 h-5" /> ¿Necesitas ayuda inmediata durante tu ruta?
-          </h3>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Escríbenos a la central de asistencia al turista de Cajamarca Tolima para guiarte en tiempo real.
-          </p>
-        </div>
-        <button
-          onClick={handleWhatsAppHelp}
-          className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>Solicitar Asistencia por WhatsApp</span>
-        </button>
-      </div>
-
-      {/* DIRECTORIO DE EMERGENCIAS */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold text-[var(--text-primary)] my-0 uppercase tracking-wider">
-          Directorio de Entidades de Apoyo
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {emergencyNumbers.map((item, idx) => {
-            const IconComp = item.icon;
-            return (
-              <div
-                key={idx}
-                className="p-5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border-light)] flex items-center gap-4 shadow-lg"
-              >
-                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 ${item.color}`}>
-                  <IconComp className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-[var(--text-primary)] my-0">{item.title}</h4>
-                  <p className="text-xs font-mono text-[var(--color-primary-light)] font-bold">{item.number}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* RECOMENDACIONES DE SEGURIDAD */}
-      <div className="p-6 rounded-3xl bg-[var(--bg-secondary)] border border-[var(--border-light)] shadow-xl space-y-3">
-        <h3 className="text-sm font-bold text-[var(--text-primary)] my-0 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-teal-400" />
-          <span>Recomendaciones de Seguridad para Senderismo y Trekking</span>
-        </h3>
-        <ul className="text-xs text-[var(--text-secondary)] space-y-2 list-disc pl-5 leading-relaxed">
-          <li>Al visitar el <strong>Bosque de Palmas de Cera en Anaime o Toche</strong>, ingresa siempre con guías certificados y equipo adecuado para montaña.</li>
-          <li>Revisa el estado del clima antes de iniciar caminatas hacia el <strong>Volcán Machín</strong> o la cuenca del Río Anaime.</li>
-          <li>Lleva protector solar, impermeable y calzado de agarre para senderos húmedos de alta montaña.</li>
-          <li>Respeta el entorno natural y conserva limpia la Despensa Agrícola de Colombia.</li>
-        </ul>
-      </div>
-    </div>
-  );
+const AsistenciaPage: React.FC = () => {
+  const supportEnabled = usePlatformConfig((state) => state.supportEnabled);
+  const supportContactEmail = usePlatformConfig((state) => state.supportContactEmail);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const loadSupport = useCallback(async () => { setLoading(true); setError(null); try { const [ticketRows, reservationRows] = await Promise.all([getMySupportTickets(), getMyReservations()]); setTickets(ticketRows); setReservations(reservationRows); } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : 'No fue posible cargar tus solicitudes.'); } finally { setLoading(false); } }, []);
+  useEffect(() => { const timer = window.setTimeout(() => void loadSupport(), 0); return () => window.clearTimeout(timer); }, [loadSupport]);
+  return <div className="space-y-8 pb-8">
+    <header className="rounded-3xl border border-teal-500/30 bg-gradient-to-r from-teal-500/20 via-[var(--bg-secondary)] to-[var(--bg-secondary)] p-6 shadow-xl sm:p-8"><div className="flex items-center gap-4"><div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-teal-500/30 bg-teal-500/20 text-teal-400"><PhoneCall className="h-7 w-7" /></div><div><div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-teal-500/20 px-2.5 py-0.5 text-[10px] font-bold text-teal-300"><Sparkles className="h-3 w-3" />Atención al viajero</div><h1 className="my-0 text-2xl font-extrabold sm:text-3xl">Asistencia y emergencias</h1><p className="mt-1 text-xs text-[var(--text-secondary)] sm:text-sm">Canales de ayuda y soporte para tu visita a Cajamarca.</p></div></div></header>
+    <section className="flex flex-col items-center justify-between gap-4 rounded-3xl border border-emerald-500/40 bg-emerald-600/20 p-6 sm:flex-row"><div className="space-y-1 text-center sm:text-left"><h2 className="my-0 flex items-center justify-center gap-2 text-base font-bold text-emerald-300 sm:justify-start"><MessageCircle className="h-5 w-5" />¿Necesitas ayuda?</h2><p className="text-xs text-[var(--text-secondary)]">{supportContactEmail ? <>Escríbenos a <a className="font-semibold text-emerald-200 underline" href={`mailto:${supportContactEmail}`}>{supportContactEmail}</a>.</> : 'Utiliza el módulo de soporte de la plataforma.'}</p></div><button type="button" disabled={!supportEnabled} onClick={() => setTicketModalOpen(true)} className="flex shrink-0 items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-bold text-white disabled:opacity-50"><Plus className="h-4 w-4" />{supportEnabled ? 'Crear solicitud' : 'Soporte deshabilitado'}</button></section>
+    <section className="space-y-4"><h2 className="my-0 text-base font-bold uppercase tracking-wider">Directorio de emergencias</h2><div className="grid grid-cols-1 gap-4 md:grid-cols-2"><div className="flex items-center gap-4 rounded-2xl border border-blue-500/20 bg-[var(--bg-secondary)] p-5 shadow-lg"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400"><ShieldCheck className="h-6 w-6" /></div><div><h3 className="my-0 text-sm font-bold">Línea Nacional de Emergencias</h3><p className="font-mono text-xs font-bold text-[var(--color-primary-light)]">123</p></div></div></div></section>
+    <section className="space-y-3 rounded-3xl border border-[var(--border-light)] bg-[var(--bg-secondary)] p-6 shadow-xl"><h2 className="my-0 flex items-center gap-2 text-sm font-bold"><FileText className="h-4 w-4 text-teal-400" />Recomendaciones de seguridad</h2><ul className="list-disc space-y-2 pl-5 text-xs leading-relaxed text-[var(--text-secondary)]"><li>Ingresa con guías certificados y equipo adecuado para montaña.</li><li>Revisa el clima antes de iniciar caminatas.</li><li>Respeta el entorno natural y conserva limpia la Despensa Agrícola de Colombia.</li></ul></section>
+    <section className="space-y-4 rounded-3xl border border-teal-500/20 bg-[var(--bg-secondary)] p-6 shadow-xl"><div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="my-0 text-base font-bold">Mis solicitudes de soporte</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">Consulta tus conversaciones y el estado de cada caso.</p></div><button type="button" disabled={!supportEnabled} onClick={() => setTicketModalOpen(true)} className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Plus className="h-4 w-4" />Crear solicitud</button></div>{loading && <p className="text-xs text-[var(--text-secondary)]">Cargando solicitudes…</p>}{error && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">{error}</p>}{!loading && !error && tickets.length === 0 && <p className="rounded-2xl bg-[var(--bg-primary)] p-4 text-xs text-[var(--text-secondary)]">Aún no tienes solicitudes de soporte.</p>}{tickets.map((ticket) => <button type="button" key={ticket.id} onClick={() => setSelectedTicket(ticket)} className="w-full rounded-2xl border border-[var(--border-light)] bg-[var(--bg-primary)] p-4 text-left hover:border-teal-400/40"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-sm">{ticket.subject}</strong><span className="text-[10px] font-bold uppercase text-teal-300">{formatSupportStatus(ticket.status)}</span></div><p className="mt-1 text-xs text-[var(--text-secondary)]">{formatSupportCategory(ticket.category)} · prioridad {formatSupportPriority(ticket.priority)} · {new Date(ticket.createdAt).toLocaleDateString('es-CO')}</p></button>)}</section>
+    {ticketModalOpen && <SupportTicketModal reservations={reservations} onClose={() => setTicketModalOpen(false)} onCreated={() => { setTicketModalOpen(false); void loadSupport(); }} />}{selectedTicket && <TicketDetailModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onChanged={() => void loadSupport()} />}
+  </div>;
 };
-
 export default AsistenciaPage;

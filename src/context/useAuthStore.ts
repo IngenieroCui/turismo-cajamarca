@@ -1,371 +1,159 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
-import { UserRoleEnum } from '../types/auth.types';
-import type {
-  UserProfile,
-  UserRole,
-  Permission,
-  LoginFormData,
-  SignUpFormData,
-} from '../types/auth.types';
+import { UserRoleEnum, type AssignedRole, type LoginFormData, type Permission, type SignUpFormData, type UserProfile, type UserRole } from '../types/auth.types';
+import { isDashboardRole } from '../utils/roleRouting';
 
 interface AuthState {
-  session: Session | null;
-  user: User | null;
-  profile: UserProfile | null;
-  loading: boolean;
-  initialized: boolean;
-  error: string | null;
-
+  session: Session | null; user: User | null; profile: UserProfile | null;
+  loading: boolean; initialized: boolean; error: string | null; activeRole: UserRole | null;
+  setActiveRole: (role: UserRole) => void;
   loginWithEmail: (data: LoginFormData) => Promise<{ success: boolean; profile?: UserProfile | null; error?: string }>;
-  signUp: (data: SignUpFormData) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  fetchProfile: (userId: string) => Promise<UserProfile | null>;
+  signUp: (data: SignUpFormData) => Promise<{ success: boolean; requiresEmailConfirmation?: boolean; error?: string }>;
+  logout: () => Promise<void>; fetchProfile: (userId: string) => Promise<UserProfile | null>;
   updateProfile: (updatedData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
-  listenToAuthChanges: () => () => void;
-  clearError: () => void;
-
+  listenToAuthChanges: () => () => void; clearError: () => void;
   hasRole: (allowedRoles: UserRole | UserRole[]) => boolean;
-  hasPermission: (permission: Permission) => boolean;
-  isSuperAdmin: () => boolean;
+  hasPermission: (permission: Permission) => boolean; isSuperAdmin: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  session: null,
-  user: null,
-  profile: null,
-  loading: true,
-  initialized: false,
-  error: null,
-
+  session: null, user: null, profile: null, loading: true, initialized: false, error: null, activeRole: null,
   clearError: () => set({ error: null }),
 
-  fetchProfile: async (userId: string): Promise<UserProfile | null> => {
+  setActiveRole: (role) => {
+    const profile = get().profile;
+    if (profile?.roles.some((assigned) => assigned.code === role && assigned.is_active && isDashboardRole(role))) {
+      set({ activeRole: role });
+    }
+  },
+
+  fetchProfile: async (userId) => {
     try {
-      const { data, error } = await supabase
-        .from('turismo_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.from('turismo_profiles').select('*').eq('id', userId).single();
+      if (error || !data) return null;
 
-      if (error) {
-        console.warn('[useAuthStore]: Warning fetching user profile from turismo_profiles table:', error.message);
-        return null;
+      const { data: assignments } = await supabase.from('turismo_user_roles')
+        .select('role_id, is_primary').eq('user_id', userId).eq('is_active', true);
+      const roleIds = (assignments || []).map((assignment) => assignment.role_id);
+      const { data: roleRows } = roleIds.length
+        ? await supabase.from('turismo_roles').select('*').in('id', roleIds).eq('is_active', true)
+        : { data: [] as Record<string, unknown>[] };
+      const roleMap = new Map((roleRows || []).map((role) => [role.id, role]));
+      const roles: AssignedRole[] = (assignments || []).map((assignment) => {
+        const role = roleMap.get(assignment.role_id);
+        return role ? { ...role, is_primary: assignment.is_primary } as AssignedRole : null;
+      }).filter((role): role is AssignedRole => Boolean(role));
+
+      const activeRoleIds = roles.map((role) => role.id);
+      const { data: permissionRows } = activeRoleIds.length
+        ? await supabase.from('turismo_role_permissions').select('permission_code').in('role_id', activeRoleIds)
+        : { data: [] as { permission_code: string }[] };
+      const permissions = Array.from(new Set((permissionRows || []).map((row) => row.permission_code as Permission)));
+
+      let touristExtension: Record<string, unknown> = {};
+      if (roles.some((role) => role.code === UserRoleEnum.TURISTA || role.code === UserRoleEnum.USUARIO)) {
+        const { data: tourist } = await supabase.from('turismo_tourist_profiles').select('*').eq('profile_id', userId).maybeSingle();
+        if (tourist) touristExtension = tourist;
       }
 
-      if (data) {
-        let touristExtension = {};
-        if (data.role === UserRoleEnum.TURISTA || data.role === UserRoleEnum.USUARIO) {
-          const { data: tData } = await supabase
-            .from('turismo_tourist_profiles')
-            .select('*')
-            .eq('profile_id', userId)
-            .maybeSingle();
-
-          if (tData) {
-            touristExtension = {
-              country_of_origin: tData.country_of_origin,
-              nationality: tData.nationality,
-              preferred_language: tData.preferred_language,
-              emergency_contact_name: tData.emergency_contact_name,
-              emergency_contact_phone: tData.emergency_contact_phone,
-            };
-          }
-        }
-
-        const userProfile: UserProfile = {
-          id: data.id,
-          email: data.email,
-          full_name: data.full_name ?? null,
-          avatar_url: data.avatar_url ?? null,
-          phone: data.phone ?? null,
-          role: (data.role as UserRole) || UserRoleEnum.TURISTA,
-          sub_role: data.sub_role ?? null,
-          org_role: data.org_role ?? null,
-          tenant_id: data.tenant_id ?? null,
-          permissions: (data.permissions as Permission[]) || [],
-          rnt_number: data.rnt_number ?? null,
-          document_type: data.document_type ?? null,
-          document_number: data.document_number ?? null,
-          is_active: data.is_active ?? true,
-          is_verified: data.is_verified ?? false,
-          created_at: data.created_at ?? new Date().toISOString(),
-          updated_at: data.updated_at ?? new Date().toISOString(),
-          ...touristExtension,
-        };
-
-        set({ profile: userProfile });
-        return userProfile;
-      }
-
-      return null;
-    } catch (err: unknown) {
-      console.error('[useAuthStore]: Unexpected error loading profile:', err);
+      const userProfile: UserProfile = { ...data, roles, permissions, ...touristExtension } as UserProfile;
+      const previousActive = get().activeRole;
+      const retained = roles.find((role) => role.code === previousActive && isDashboardRole(role.code));
+      const primary = roles.find((role) => role.is_primary && isDashboardRole(role.code));
+      const firstKnown = roles.find((role) => isDashboardRole(role.code));
+      set({ profile: userProfile, activeRole: retained?.code as UserRole || primary?.code as UserRole || firstKnown?.code as UserRole || null });
+      return userProfile;
+    } catch (err) {
+      console.error('[useAuthStore] Error loading profile:', err);
       return null;
     }
   },
 
-  updateProfile: async (updatedData: Partial<UserProfile>): Promise<{ success: boolean; error?: string }> => {
+  updateProfile: async (updatedData) => {
     const { user } = get();
     if (!user) return { success: false, error: 'No hay sesión de usuario activa.' };
-
     set({ loading: true, error: null });
     try {
-      const profilePayload: Record<string, unknown> = {};
-      if (updatedData.full_name !== undefined) profilePayload.full_name = updatedData.full_name;
-      if (updatedData.phone !== undefined) profilePayload.phone = updatedData.phone;
-      if (updatedData.document_type !== undefined) profilePayload.document_type = updatedData.document_type;
-      if (updatedData.document_number !== undefined) profilePayload.document_number = updatedData.document_number;
+      const { error } = await supabase.rpc('turismo_update_own_profile', {
+        p_full_name: updatedData.full_name ?? null, p_phone: updatedData.phone ?? null,
+        p_document_type: updatedData.document_type ?? null, p_document_number: updatedData.document_number ?? null,
+      });
+      if (error) throw error;
 
-      if (Object.keys(profilePayload).length > 0) {
-        const { error: pError } = await supabase
-          .from('turismo_profiles')
-          .update(profilePayload)
-          .eq('id', user.id);
-
-        if (pError) throw pError;
+      const touristFields = ['country_of_origin', 'nationality', 'preferred_language', 'emergency_contact_name', 'emergency_contact_phone'] as const;
+      const touristPayload = Object.fromEntries(touristFields.filter((key) => updatedData[key] !== undefined).map((key) => [key, updatedData[key]]));
+      if (Object.keys(touristPayload).length) {
+        const { error: touristError } = await supabase.from('turismo_tourist_profiles').upsert([{ profile_id: user.id, ...touristPayload }], { onConflict: 'profile_id' });
+        if (touristError) throw touristError;
       }
-
-      const touristPayload: Record<string, unknown> = {};
-      if (updatedData.country_of_origin !== undefined) touristPayload.country_of_origin = updatedData.country_of_origin;
-      if (updatedData.nationality !== undefined) touristPayload.nationality = updatedData.nationality;
-      if (updatedData.preferred_language !== undefined) touristPayload.preferred_language = updatedData.preferred_language;
-      if (updatedData.emergency_contact_name !== undefined) touristPayload.emergency_contact_name = updatedData.emergency_contact_name;
-      if (updatedData.emergency_contact_phone !== undefined) touristPayload.emergency_contact_phone = updatedData.emergency_contact_phone;
-
-      if (Object.keys(touristPayload).length > 0) {
-        const { error: tError } = await supabase
-          .from('turismo_tourist_profiles')
-          .upsert([{ profile_id: user.id, ...touristPayload }], { onConflict: 'profile_id' });
-
-        if (tError) throw tError;
-      }
-
-      await get().fetchProfile(user.id);
-      set({ loading: false });
-      return { success: true };
+      await get().fetchProfile(user.id); set({ loading: false }); return { success: true };
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar perfil.';
-      set({ loading: false, error: errorMessage });
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Error al actualizar perfil.';
+      set({ loading: false, error: message }); return { success: false, error: message };
     }
   },
 
-  loginWithEmail: async ({ email, password }: LoginFormData) => {
+  loginWithEmail: async ({ email, password }) => {
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        set({ loading: false, error: error.message });
-        return { success: false, error: error.message };
-      }
-
-      let userProfile: UserProfile | null = null;
-      if (data.session && data.user) {
-        set({ session: data.session, user: data.user });
-        userProfile = await get().fetchProfile(data.user.id);
-      }
-
-      set({ loading: false });
-      return { success: true, profile: userProfile };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { set({ loading: false, error: error.message }); return { success: false, error: error.message }; }
+      let profile: UserProfile | null = null;
+      if (data.user) { set({ session: data.session, user: data.user }); profile = await get().fetchProfile(data.user.id); }
+      set({ loading: false }); return { success: true, profile };
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error inesperado al iniciar sesión.';
-      set({ loading: false, error: errorMessage });
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Error inesperado al iniciar sesión.';
+      set({ loading: false, error: message });
+      return { success: false, error: message };
     }
   },
 
-  signUp: async ({
-    email,
-    password,
-    fullName,
-    phone,
-    documentType = 'DNI',
-    documentNumber,
-    countryOfOrigin = 'Colombia',
-    nationality = 'Colombiana',
-    preferredLanguage = 'es',
-    emergencyContactName,
-    emergencyContactPhone,
-    role = UserRoleEnum.TURISTA,
-    subRole,
-    rntNumber,
-  }: SignUpFormData) => {
+  signUp: async ({ email, password, fullName, phone, documentType = 'DNI', documentNumber, countryOfOrigin = 'Colombia', nationality = 'Colombiana', preferredLanguage = 'es', emergencyContactName, emergencyContactPhone }) => {
     set({ loading: true, error: null });
     try {
-      const assignedRole = role || UserRoleEnum.TURISTA;
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: assignedRole,
-            phone: phone || null,
-            document_type: documentType,
-            document_number: documentNumber || null,
-            country_of_origin: countryOfOrigin || 'Colombia',
-            nationality: nationality || 'Colombiana',
-            preferred_language: preferredLanguage || 'es',
-            emergency_contact_name: emergencyContactName || null,
-            emergency_contact_phone: emergencyContactPhone || null,
-          },
-        },
-      });
-
-      if (error) {
-        let friendlyError = error.message;
-        if (error.message.includes('Database error saving new user')) {
-          friendlyError = 'Debes ejecutar el script SQL sql/00_master_schema_all_in_one.sql en tu proyecto de Supabase para crear las tablas con el prefijo turismo_.';
-        }
-        set({ loading: false, error: friendlyError });
-        return { success: false, error: friendlyError };
-      }
-
-      if (data.user) {
-        const newProfile: Partial<UserProfile> = {
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          phone: phone || null,
-          document_type: documentType,
-          document_number: documentNumber || null,
-          role: assignedRole,
-          sub_role: subRole || null,
-          rnt_number: rntNumber || null,
-          tenant_id: null,
-          permissions: assignedRole === UserRoleEnum.SUPER_ADMIN ? ['*'] : [],
-          is_active: true,
-          is_verified: true,
-        };
-
-        try {
-          await supabase
-            .from('turismo_profiles')
-            .upsert([newProfile], { onConflict: 'id' });
-        } catch (e) {
-          console.warn('[useAuthStore]: Profile creation catch:', e);
-        }
-
-        if (assignedRole === UserRoleEnum.TURISTA || assignedRole === UserRoleEnum.USUARIO) {
-          try {
-            await supabase
-              .from('turismo_tourist_profiles')
-              .upsert([
-                {
-                  profile_id: data.user.id,
-                  country_of_origin: countryOfOrigin || 'Colombia',
-                  nationality: nationality || 'Colombiana',
-                  preferred_language: preferredLanguage || 'es',
-                  emergency_contact_name: emergencyContactName || null,
-                  emergency_contact_phone: emergencyContactPhone || null,
-                },
-              ], { onConflict: 'profile_id' });
-          } catch (e) {
-            console.warn('[useAuthStore]: Tourist profile extension catch:', e);
-          }
-        }
-
-        set({
-          session: data.session,
-          user: data.user,
-          profile: {
-            ...newProfile,
-            country_of_origin: countryOfOrigin,
-            nationality,
-            preferred_language: preferredLanguage,
-            emergency_contact_name: emergencyContactName,
-            emergency_contact_phone: emergencyContactPhone,
-          } as UserProfile,
-        });
-      }
-
-      set({ loading: false });
-      return { success: true };
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: {
+        full_name: fullName, phone: phone || null, document_type: documentType, document_number: documentNumber || null,
+        country_of_origin: countryOfOrigin, nationality, preferred_language: preferredLanguage,
+        emergency_contact_name: emergencyContactName || null, emergency_contact_phone: emergencyContactPhone || null,
+      } } });
+      if (error) { const message = error.message.includes('Database error saving new user') ? 'Debes ejecutar la migración RBAC en Supabase.' : error.message; set({ loading: false, error: message }); return { success: false, error: message }; }
+      if (data.user && data.session) { set({ session: data.session, user: data.user }); await get().fetchProfile(data.user.id); }
+      set({ loading: false }); return { success: true, requiresEmailConfirmation: Boolean(data.user && !data.session) };
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error inesperado durante el registro.';
-      set({ loading: false, error: errorMessage });
-      return { success: false, error: errorMessage };
+      const message = err instanceof Error ? err.message : 'Error inesperado durante el registro.';
+      set({ loading: false, error: message });
+      return { success: false, error: message };
     }
   },
 
   logout: async () => {
     set({ loading: true });
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('[useAuthStore]: Error signing out:', err);
-    } finally {
-      set({
-        session: null,
-        user: null,
-        profile: null,
-        loading: false,
-        error: null,
-      });
-    }
+    try { await supabase.auth.signOut(); } catch { /* Clear local state even when the network is unavailable. */ }
+    set({ session: null, user: null, profile: null, activeRole: null, loading: false, error: null });
   },
 
   listenToAuthChanges: () => {
     set({ loading: true });
-
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        set({ session, user: session.user });
-        get().fetchProfile(session.user.id).finally(() => {
-          set({ loading: false, initialized: true });
-        });
-      } else {
-        set({ session: null, user: null, profile: null, loading: false, initialized: true });
-      }
+      if (session?.user) { set({ session, user: session.user }); get().fetchProfile(session.user.id).finally(() => set({ loading: false, initialized: true })); }
+      else set({ session: null, user: null, profile: null, activeRole: null, loading: false, initialized: true });
+    }).catch((err: unknown) => {
+      set({ session: null, user: null, profile: null, activeRole: null, loading: false, initialized: true, error: err instanceof Error ? err.message : 'No fue posible inicializar la sesión.' });
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          set({ session, user: session.user });
-          await get().fetchProfile(session.user.id);
-        } else {
-          set({ session: null, user: null, profile: null });
-        }
-        set({ loading: false, initialized: true });
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) { set({ session, user: session.user }); await get().fetchProfile(session.user.id); }
+      else set({ session: null, user: null, profile: null, activeRole: null });
+      set({ loading: false, initialized: true });
+    });
+    return () => subscription.unsubscribe();
   },
 
-  hasRole: (allowedRoles: UserRole | UserRole[]): boolean => {
-    const { profile } = get();
-    if (!profile || !profile.is_active) return false;
-
-    if (profile.role === UserRoleEnum.SUPER_ADMIN) return true;
-
-    const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-    return rolesArray.includes(profile.role);
+  hasRole: (allowedRoles) => {
+    const profile = get().profile; if (!profile || !profile.is_active) return false;
+    const requested = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    return profile.roles.some((role) => role.is_active && (requested.includes(role.code as UserRole) || role.code === UserRoleEnum.SUPER_ADMIN));
   },
-
-  hasPermission: (permission: Permission): boolean => {
-    const { profile } = get();
-    if (!profile || !profile.is_active) return false;
-
-    if (profile.role === UserRoleEnum.SUPER_ADMIN || profile.permissions.includes('*')) {
-      return true;
-    }
-
-    return profile.permissions.includes(permission);
-  },
-
-  isSuperAdmin: (): boolean => {
-    const { profile } = get();
-    return profile?.role === UserRoleEnum.SUPER_ADMIN;
-  },
+  hasPermission: (permission) => { const profile = get().profile; return Boolean(profile?.is_active && (profile.permissions.includes('*') || profile.permissions.includes(permission))); },
+  isSuperAdmin: () => Boolean(get().profile?.is_active && get().profile?.roles.some((role) => role.code === UserRoleEnum.SUPER_ADMIN && role.is_active)),
 }));
