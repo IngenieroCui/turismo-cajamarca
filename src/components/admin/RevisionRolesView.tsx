@@ -21,7 +21,6 @@ interface Props {
 }
 type FlashMessage = { type: "success" | "error"; text: string };
 const standardReviewRoles: UserRole[] = [
-  UserRoleEnum.USUARIO,
   UserRoleEnum.TURISTA,
   UserRoleEnum.PRESTADOR_TURISTICO,
   UserRoleEnum.MODERADOR,
@@ -41,7 +40,6 @@ const protectedHumanRoles: UserRole[] = [
 const detailFields: Partial<
   Record<UserRole, Array<[string, keyof RoleProfileDetails]>>
 > = {
-  usuario: [["Pais", "country_of_origin"]],
   turista: [["Pais", "country_of_origin"]],
   prestador_turistico: [
     ["NIT", "ruc"],

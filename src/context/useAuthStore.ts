@@ -304,7 +304,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!profile || !profile.is_active) return false;
     const requested = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
     return profile.roles.some(
-      (role) => role.is_active && (requested.includes(role.code as UserRole) || role.code === UserRoleEnum.SUPER_ADMIN),
+      (role) => role.is_active && !role.is_system && requested.includes(role.code as UserRole),
     );
   },
 
@@ -314,6 +314,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   isSuperAdmin: () => Boolean(
-    get().profile?.is_active && get().profile?.roles.some((role) => role.code === UserRoleEnum.SUPER_ADMIN && role.is_active),
+    get().profile?.is_active && get().profile?.roles.some(
+      (role) => role.code === UserRoleEnum.SUPER_ADMIN && role.is_active && !role.is_system,
+    ),
   ),
 }));

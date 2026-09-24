@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
 import { signUpSchema } from '../../types/auth.types';
 import { getPlatformLogo } from '../../utils/getPlatformLogo';
-import { getDefaultRoleRoute } from '../../utils/roleRouting';
 import { Footer } from '../../Footer';
 import { AlertCircle, FileText, Loader2, Shield, UserPlus } from 'lucide-react';
 
@@ -51,7 +50,7 @@ export const SignUp: React.FC = () => {
     if (result.success && result.requiresEmailConfirmation) {
       setRequiresEmailConfirmation(true);
     } else if (result.success) {
-      navigate(getDefaultRoleRoute(useAuthStore.getState().profile?.roles), { replace: true });
+      navigate('/turista', { replace: true });
     }
   };
 
@@ -82,10 +81,10 @@ export const SignUp: React.FC = () => {
             </Link>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary-light)]">
               <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Cuenta base de la plataforma</span>
+              <span>Cuenta Turista</span>
             </div>
             <h1 className="my-0 text-2xl font-bold tracking-tight">Crear cuenta</h1>
-            <p className="mx-auto max-w-md text-xs leading-relaxed text-[var(--text-secondary)]">Comienza con una cuenta base. Un administrador podrá asignarte roles adicionales cuando corresponda.</p>
+            <p className="mx-auto max-w-md text-xs leading-relaxed text-[var(--text-secondary)]">Crea tu cuenta para explorar Cajamarca, guardar favoritos y planificar experiencias. Podrás recibir otros roles si también participas en la plataforma.</p>
           </div>
 
           {error && <div className="flex items-center gap-2 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-3.5 text-xs text-red-400" role="alert"><AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" /><span>{error}</span></div>}

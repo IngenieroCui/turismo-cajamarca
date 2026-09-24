@@ -102,7 +102,7 @@ export const getUserFullRoleProfile = async (userId: string, role: UserRole): Pr
 
 export const updateUserRoleProfile = async (
   userId: string,
-  role: UserRole,
+  role: UserRole | null,
   baseFields: {
     full_name?: string | null;
     phone?: string | null;

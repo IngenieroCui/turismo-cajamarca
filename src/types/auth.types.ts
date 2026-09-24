@@ -185,15 +185,15 @@ export interface RoleMetaData {
 export const ROLE_METADATA: Record<UserRole, RoleMetaData> = {
   [UserRoleEnum.USUARIO]: {
     role: UserRoleEnum.USUARIO,
-    label: 'Usuario',
-    description: 'Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.',
+    label: 'Usuario legado',
+    description: 'Rol histórico de compatibilidad; no se asigna a nuevas cuentas.',
     badgeColor: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
     folderName: 'usuario',
   },
   [UserRoleEnum.TURISTA]: {
     role: UserRoleEnum.TURISTA,
     label: 'Turista',
-    description: 'Viajeros y consumidores finales de experiencias turísticas.',
+    description: 'Usuario final que explora, planifica y reserva experiencias turísticas.',
     badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     folderName: 'turista',
   },
@@ -301,7 +301,7 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
- * Esquema Zod para Registro de Usuario. El rol base lo decide el trigger de Auth.
+ * El alta pública crea una cuenta Turista; el trigger de Auth asigna el rol.
  */
 export const signUpSchema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido.'),

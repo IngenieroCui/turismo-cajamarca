@@ -47,7 +47,11 @@ export const RolePermissionsModal: React.FC<Props> = ({ role, isSuperAdmin, onCl
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<FlashMessage | null>(null);
 
-  const readOnly = role.is_system || role.code === 'super_admin' || (role.is_protected && !isSuperAdmin);
+  const isLegacyRole = role.code === 'usuario';
+  const readOnly = isLegacyRole || role.is_system || role.code === 'super_admin' || (role.is_protected && !isSuperAdmin);
+  const readOnlyDescription = isLegacyRole
+    ? 'Usuario es un rol legado sin permisos operativos. No admite nuevas asignaciones.'
+    : 'Rol protegido: permisos de solo lectura.';
 
   const load = async () => {
     setLoading(true);
@@ -106,13 +110,13 @@ export const RolePermissionsModal: React.FC<Props> = ({ role, isSuperAdmin, onCl
   };
 
   return (
-    <ModalShell open title={`Permisos: ${role.name}`} description={readOnly ? 'Rol protegido: permisos de solo lectura.' : 'Define qué puede hacer cada rol dentro de la plataforma.'} onClose={onClose} maxWidth="max-w-2xl">
+    <ModalShell open title={`Permisos: ${role.name}`} description={readOnly ? readOnlyDescription : 'Define qué puede hacer cada rol dentro de la plataforma.'} onClose={onClose} maxWidth="max-w-2xl">
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-[var(--text-primary)] my-0">Permisos: {role.name}</h3>
             <p className="text-xs text-[var(--text-secondary)]">
-              {readOnly ? 'Rol protegido: permisos de solo lectura.' : 'Permisos heredados por las asignaciones de este rol.'}
+              {readOnly ? readOnlyDescription : 'Permisos heredados por las asignaciones de este rol.'}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-[var(--bg-primary)] cursor-pointer" aria-label="Cerrar">
@@ -133,7 +137,12 @@ export const RolePermissionsModal: React.FC<Props> = ({ role, isSuperAdmin, onCl
         {!loading && !loadError && role.code === 'super_admin' && (
           <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-sm text-red-200 font-bold">* Acceso global — inmutable</div>
         )}
-        {!loading && !loadError && role.code !== 'super_admin' && Object.entries(grouped).map(([module, items]) => (
+        {!loading && !loadError && role.code === 'usuario' && (
+          <div className="rounded-2xl border border-slate-500/20 bg-slate-500/10 p-4 text-xs text-slate-200">
+            Usuario es un rol legado sin permisos operativos. No admite nuevas asignaciones.
+          </div>
+        )}
+        {!loading && !loadError && role.code !== 'super_admin' && !isLegacyRole && Object.entries(grouped).map(([module, items]) => (
           <section key={module} className="space-y-2">
             <h4 className="text-xs uppercase tracking-wider font-bold text-purple-300">{module}</h4>
             <div className="grid sm:grid-cols-2 gap-2">

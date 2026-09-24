@@ -1,6 +1,6 @@
-﻿-- Turismo Cajamarca: esquema fresco RBAC multi-rol (Supabase PostgreSQL).
--- Este maestro contiene las fases históricas 08–13 y el cierre funcional
--- vigente. Las migraciones separadas se conservan para actualizar bases existentes.
+-- Turismo Cajamarca: esquema fresco RBAC multi-rol (Supabase PostgreSQL).
+-- Esquema fresco final equivalente a las migraciones 08–16.
+-- Las migraciones separadas se conservan para actualizar bases existentes.
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -103,8 +103,8 @@ CREATE TABLE public.turismo_user_roles (
 CREATE UNIQUE INDEX turismo_one_primary_role_per_user ON public.turismo_user_roles(user_id) WHERE is_primary AND is_active;
 
 INSERT INTO public.turismo_roles(code,name,description,badge_color,folder_name,is_protected,is_system) VALUES
- ('usuario','Usuario General','Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
- ('turista','Turista','Viajeros y consumidores finales de experiencias turísticas.','bg-blue-500/10 text-blue-400 border-blue-500/20','turista',false,false),
+ ('usuario','Usuario legado','Rol histórico de compatibilidad. Las nuevas cuentas utilizan el rol Turista.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
+ ('turista','Turista','Usuario final que explora, planifica y reserva experiencias turísticas.','bg-blue-500/10 text-blue-400 border-blue-500/20','turista',false,false),
  ('prestador_turistico','Prestador Turístico','Empresas, guías, hoteles y operadores turísticos.','bg-emerald-500/10 text-emerald-400 border-emerald-500/20','prestador_turistico',false,false),
  ('admin','Administrador','Operación diaria de la plataforma y usuarios.','bg-purple-500/10 text-purple-400 border-purple-500/20','admin',true,false),
  ('super_admin','Super Administrador','Control global de la plataforma.','bg-red-500/10 text-red-400 border-red-500/20','super_admin',true,false),
@@ -121,7 +121,7 @@ INSERT INTO public.turismo_roles(code,name,description,badge_color,folder_name,i
 INSERT INTO public.turismo_permissions(code,name,description,module) VALUES
  ('*','Acceso global','Acceso global de Super Administrador.','platform'),('platform:read','Consultar plataforma','Consultar configuración y estado de la plataforma.','platform'),('platform:write','Operar plataforma','Ejecutar operaciones de plataforma.','platform'),('platform:config','Configurar plataforma','Modificar configuración de plataforma.','platform'),('users:manage','Gestionar usuarios','Administrar estado y roles de usuarios.','users'),('roles:manage','Gestionar permisos','Administrar permisos heredados por los roles.','roles'),('content:moderate','Moderar contenido','Revisar contenido reportado.','content'),('content:approve','Aprobar contenido','Aprobar contenido turístico.','content'),('content:reject','Rechazar contenido','Rechazar contenido turístico.','content'),('provider:catalog_manage','Gestionar catálogo','Administrar información del catálogo.','provider'),('provider:offers_manage','Gestionar ofertas','Administrar ofertas del prestador.','provider'),('provider:bookings_view','Consultar reservas','Consultar reservas del prestador.','provider'),('provider:finances_view','Consultar finanzas','Consultar información financiera.','provider'),('tourist:book','Reservar experiencias','Crear reservas turísticas.','tourist'),('tourist:review','Publicar reseñas','Publicar reseñas turísticas.','tourist'),('tourist:profile','Gestionar perfil','Gestionar datos personales turísticos.','tourist'),('audit:logs_read','Leer auditoría','Consultar bitácoras de auditoría.','audit'),('audit:blockchain_read','Leer integridad','Consultar evidencias de integridad.','audit'),('support:tickets_manage','Gestionar soporte','Atender solicitudes de soporte.','support'),('support:refund_issue','Emitir reembolsos','Emitir reembolsos autorizados.','support'),('bi:analytics_read','Leer analítica','Consultar analítica agregada.','bi'),('bi:reports_export','Exportar informes','Exportar informes de negocio.','bi'),('ai:recommendations_read','Consultar recomendaciones','Usar recomendaciones de IA.','ai'),('ai:embeddings_write','Escribir embeddings','Escribir embeddings de servicio.','ai'),('devops:infra_manage','Gestionar infraestructura','Administrar infraestructura técnica.','devops'),('ambassador:referral_manage','Gestionar referidos','Administrar campañas de referidos.','ambassador'),('ambassador:commissions_view','Consultar comisiones','Consultar comisiones de referidos.','ambassador'),('regulatory:rnt_verify','Verificar RNT','Verificar registros turísticos.','regulatory'),('regulatory:compliance_report','Reportar cumplimiento','Emitir informes regulatorios.','regulatory');
 INSERT INTO public.turismo_role_permissions(role_id,permission_code) SELECT r.id,x.permission_code FROM (VALUES
- ('super_admin','*'),('admin','platform:read'),('admin','platform:config'),('admin','users:manage'),('admin','roles:manage'),('admin','content:moderate'),('admin','content:approve'),('admin','content:reject'),('admin','support:tickets_manage'),('moderador','content:moderate'),('moderador','content:approve'),('moderador','content:reject'),('prestador_turistico','provider:catalog_manage'),('prestador_turistico','provider:offers_manage'),('prestador_turistico','provider:bookings_view'),('prestador_turistico','provider:finances_view'),('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),('auditor','audit:logs_read'),('auditor','audit:blockchain_read'),('soporte','support:tickets_manage'),('soporte','support:refund_issue'),('analista_datos','bi:analytics_read'),('analista_datos','bi:reports_export'),('desarrollador','devops:infra_manage'),('servicios_ia','ai:recommendations_read'),('servicios_ia','ai:embeddings_write'),('embajador','tourist:profile'),('embajador','tourist:book'),('embajador','tourist:review'),('embajador','ambassador:referral_manage'),('embajador','ambassador:commissions_view'),('afiliado','tourist:profile'),('afiliado','tourist:book'),('afiliado','tourist:review'),('afiliado','ambassador:referral_manage'),('afiliado','ambassador:commissions_view'),('funcionario_mincit','regulatory:rnt_verify'),('funcionario_mincit','regulatory:compliance_report'),('camara_comercio','regulatory:rnt_verify'),('camara_comercio','regulatory:compliance_report')) x(role_code,permission_code) JOIN public.turismo_roles r ON r.code=x.role_code;
+ ('super_admin','*'),('admin','platform:read'),('admin','platform:config'),('admin','users:manage'),('admin','roles:manage'),('admin','content:moderate'),('admin','content:approve'),('admin','content:reject'),('admin','support:tickets_manage'),('moderador','content:moderate'),('moderador','content:approve'),('moderador','content:reject'),('prestador_turistico','provider:catalog_manage'),('prestador_turistico','provider:offers_manage'),('prestador_turistico','provider:bookings_view'),('prestador_turistico','provider:finances_view'),('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),('auditor','audit:logs_read'),('auditor','audit:blockchain_read'),('soporte','support:tickets_manage'),('soporte','support:refund_issue'),('analista_datos','bi:analytics_read'),('analista_datos','bi:reports_export'),('desarrollador','devops:infra_manage'),('servicios_ia','ai:recommendations_read'),('servicios_ia','ai:embeddings_write'),('embajador','ambassador:referral_manage'),('embajador','ambassador:commissions_view'),('afiliado','ambassador:referral_manage'),('afiliado','ambassador:commissions_view'),('funcionario_mincit','regulatory:rnt_verify'),('funcionario_mincit','regulatory:compliance_report'),('camara_comercio','regulatory:rnt_verify'),('camara_comercio','regulatory:compliance_report')) x(role_code,permission_code) JOIN public.turismo_roles r ON r.code=x.role_code;
 
 CREATE OR REPLACE FUNCTION public.turismo_current_user_is_active()
 RETURNS BOOLEAN
@@ -159,7 +159,45 @@ $$;
 CREATE OR REPLACE FUNCTION public.turismo_is_super_admin()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT public.turismo_current_user_has_role('super_admin'); $$;
 
-CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE usuario_id UUID; BEGIN INSERT INTO turismo_profiles(id,email,full_name,phone,document_type,document_number) VALUES(NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',COALESCE((NEW.raw_user_meta_data->>'document_type')::turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number'); SELECT id INTO usuario_id FROM turismo_roles WHERE code='usuario' AND is_active; IF usuario_id IS NULL THEN RAISE EXCEPTION 'El rol base usuario no está configurado; no se puede crear la cuenta'; END IF; INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES(NEW.id,usuario_id,true,true); RETURN NEW; END; $$;
+CREATE OR REPLACE FUNCTION public.turismo_handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE tourist_role_id UUID;
+BEGIN
+  INSERT INTO public.turismo_profiles(
+    id, email, full_name, phone, document_type, document_number, is_active, is_verified
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    NEW.raw_user_meta_data->>'phone',
+    COALESCE((NEW.raw_user_meta_data->>'document_type')::public.turismo_document_type_enum, 'DNI'),
+    NEW.raw_user_meta_data->>'document_number',
+    TRUE,
+    FALSE
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
+    phone = COALESCE(EXCLUDED.phone, public.turismo_profiles.phone);
+
+  SELECT id INTO tourist_role_id
+  FROM public.turismo_roles
+  WHERE code = 'turista' AND is_active AND NOT is_system;
+  IF tourist_role_id IS NULL THEN
+    RAISE EXCEPTION 'El rol Turista no existe o está inactivo; no se puede crear la cuenta';
+  END IF;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary)
+  VALUES (NEW.id, tourist_role_id, TRUE, TRUE)
+  ON CONFLICT (user_id, role_id) DO UPDATE
+    SET is_active = TRUE, is_primary = TRUE;
+
+  PERFORM public.turismo_initialize_user_role_extension(NEW.id, 'turista');
+  RETURN NEW;
+END;
+$$;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users; DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users; CREATE TRIGGER on_auth_user_created_turismo AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.turismo_handle_new_user();
 
 CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(p_user_id UUID,p_role_code TEXT,p_make_primary BOOLEAN DEFAULT FALSE)
@@ -218,7 +256,7 @@ BEGIN
   IF NOT caller_is_super AND EXISTS (SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.is_protected) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
   IF p_role_code='super_admin' AND p_user_id=auth.uid() THEN SELECT count(*) INTO remaining FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.code='super_admin'; IF remaining<=1 THEN RAISE EXCEPTION 'No puedes eliminar tu último acceso Super Admin'; END IF; END IF;
   SELECT count(*) INTO remaining FROM turismo_user_roles WHERE user_id=p_user_id AND is_active;
-  IF remaining<=1 THEN RAISE EXCEPTION 'El usuario debe conservar un rol activo'; END IF;
+
   UPDATE turismo_user_roles SET is_active=FALSE,is_primary=FALSE WHERE user_id=p_user_id AND role_id=target_id;
   IF was_primary THEN UPDATE turismo_user_roles SET is_primary=TRUE WHERE user_id=p_user_id AND is_active AND role_id=(SELECT role_id FROM turismo_user_roles WHERE user_id=p_user_id AND is_active ORDER BY assigned_at LIMIT 1); END IF;
 END; $$;
@@ -1808,7 +1846,7 @@ CREATE OR REPLACE FUNCTION public.turismo_update_tourist_preferences(p_preferenc
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE cleaned TEXT[];
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista') OR public.turismo_current_user_has_role('usuario')) THEN RAISE EXCEPTION 'Solo un turista activo puede actualizar sus preferencias'; END IF;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista')) THEN RAISE EXCEPTION 'Solo un turista activo puede actualizar sus preferencias'; END IF;
   IF COALESCE(array_length(p_preferences, 1), 0) > 9 THEN RAISE EXCEPTION 'Puedes seleccionar máximo 9 intereses'; END IF;
   IF EXISTS (SELECT 1 FROM unnest(COALESCE(p_preferences, ARRAY[]::TEXT[])) value WHERE LOWER(TRIM(value)) NOT IN ('naturaleza','aventura','gastronomia','cultura','descanso','familia','artesania','eventos','alojamiento')) THEN RAISE EXCEPTION 'Una preferencia no pertenece al vocabulario permitido'; END IF;
   SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::TEXT[]) INTO cleaned
@@ -1862,7 +1900,7 @@ CREATE OR REPLACE FUNCTION public.turismo_save_itinerary(
 ) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE itinerary_id UUID; item_record RECORD; clean_interests TEXT[];
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista') OR public.turismo_current_user_has_role('usuario')) THEN RAISE EXCEPTION 'Solo un turista activo puede guardar itinerarios'; END IF;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista')) THEN RAISE EXCEPTION 'Solo un turista activo puede guardar itinerarios'; END IF;
   IF NULLIF(TRIM(p_name), '') IS NULL THEN RAISE EXCEPTION 'El nombre del itinerario es obligatorio'; END IF;
   IF p_days IS NULL OR p_days NOT BETWEEN 1 AND 7 THEN RAISE EXCEPTION 'El itinerario debe tener entre 1 y 7 días'; END IF;
   IF p_budget_level NOT IN ('economico','moderado','premium','flexible') THEN RAISE EXCEPTION 'Presupuesto inválido'; END IF;
@@ -1885,7 +1923,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.turismo_delete_itinerary(p_itinerary_id UUID)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista') OR public.turismo_current_user_has_role('usuario')) THEN RAISE EXCEPTION 'Solo un turista activo puede eliminar itinerarios'; END IF;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_role('turista')) THEN RAISE EXCEPTION 'Solo un turista activo puede eliminar itinerarios'; END IF;
   DELETE FROM public.turismo_itineraries WHERE id = p_itinerary_id AND tourist_id = auth.uid();
   IF NOT FOUND THEN RAISE EXCEPTION 'Itinerario no encontrado o no te pertenece'; END IF;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'itinerary_deleted', p_itinerary_id::TEXT, '{}'::jsonb);
@@ -2508,7 +2546,7 @@ INSERT INTO public.turismo_schema_version(version,migration_name) VALUES (8,'08_
 CREATE OR REPLACE FUNCTION public.turismo_get_system_health() RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT (public.turismo_current_user_has_permission('devops:infra_manage') OR public.turismo_is_super_admin()) THEN RAISE EXCEPTION 'No tienes permiso para consultar la salud del sistema'; END IF;
-  RETURN jsonb_build_object('database_time',NOW(),'active_users',(SELECT COUNT(*) FROM public.turismo_profiles WHERE is_active),'active_roles',(SELECT COUNT(*) FROM public.turismo_user_roles WHERE is_active),'published_catalog',(SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status='published'),'open_support_tickets',(SELECT COUNT(*) FROM public.turismo_support_tickets WHERE status IN ('open','in_progress','waiting_user')),'pending_catalog_moderation',(SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status='pending_review'),'pending_reviews',(SELECT COUNT(*) FROM public.turismo_reviews WHERE status='pending'),'pending_deletion_requests',(SELECT COUNT(*) FROM public.turismo_account_deletion_requests WHERE status='pending'),'latest_audit_event_at',(SELECT MAX(created_at) FROM public.turismo_audit_logs),'notification_count_24h',(SELECT COUNT(*) FROM public.turismo_notifications WHERE created_at >= NOW()-INTERVAL '24 hours'),'schema_version',13);
+  RETURN jsonb_build_object('database_time',NOW(),'active_users',(SELECT COUNT(*) FROM public.turismo_profiles WHERE is_active),'active_roles',(SELECT COUNT(*) FROM public.turismo_user_roles WHERE is_active),'published_catalog',(SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status='published'),'open_support_tickets',(SELECT COUNT(*) FROM public.turismo_support_tickets WHERE status IN ('open','in_progress','waiting_user')),'pending_catalog_moderation',(SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status='pending_review'),'pending_reviews',(SELECT COUNT(*) FROM public.turismo_reviews WHERE status='pending'),'pending_deletion_requests',(SELECT COUNT(*) FROM public.turismo_account_deletion_requests WHERE status='pending'),'latest_audit_event_at',(SELECT MAX(created_at) FROM public.turismo_audit_logs),'notification_count_24h',(SELECT COUNT(*) FROM public.turismo_notifications WHERE created_at >= NOW()-INTERVAL '24 hours'),'schema_version',(SELECT COALESCE(MAX(version),0) FROM public.turismo_schema_version));
 END; $$;
 REVOKE ALL ON FUNCTION public.turismo_get_system_health() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.turismo_get_system_health() TO authenticated;
@@ -2555,8 +2593,8 @@ DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); item_row 
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'catalog') THEN RAISE EXCEPTION 'No tienes permiso para enviar ofertas'; END IF;
   SELECT * INTO item_row FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value;
-  IF NOT FOUND OR item_row.status NOT IN ('draft','rejected') THEN RAISE EXCEPTION 'La oferta no estA? disponible para envA?o'; END IF;
-  IF NULLIF(TRIM(item_row.title),'') IS NULL OR NULLIF(TRIM(item_row.short_description),'') IS NULL OR NULLIF(TRIM(item_row.location),'') IS NULL OR NULLIF(TRIM(item_row.cover_image_url),'') IS NULL THEN RAISE EXCEPTION 'Completa tA?tulo, descripciA?n corta, ubicaciA?n e imagen'; END IF;
+  IF NOT FOUND OR item_row.status NOT IN ('draft','rejected') THEN RAISE EXCEPTION 'La oferta no está disponible para envío'; END IF;
+  IF NULLIF(TRIM(item_row.title),'') IS NULL OR NULLIF(TRIM(item_row.short_description),'') IS NULL OR NULLIF(TRIM(item_row.location),'') IS NULL OR NULLIF(TRIM(item_row.cover_image_url),'') IS NULL THEN RAISE EXCEPTION 'Completa título, descripción corta, ubicación e imagen'; END IF;
   UPDATE public.turismo_catalog_items SET status = 'pending_review', moderation_reason = NULL, updated_at = NOW() WHERE id = p_item_id;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'catalog_item_submitted', p_item_id::TEXT, jsonb_build_object('provider_id', provider_id_value));
 END;
@@ -2580,8 +2618,8 @@ RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); day_value DATE; affected_days INTEGER := 0;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'availability') THEN RAISE EXCEPTION 'No tienes permiso para gestionar disponibilidad'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
-  IF p_start_date IS NULL OR p_end_date IS NULL OR p_start_date < CURRENT_DATE OR p_end_date < p_start_date OR p_end_date > p_start_date + 179 THEN RAISE EXCEPTION 'El rango de disponibilidad no es vA?lido'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF p_start_date IS NULL OR p_end_date IS NULL OR p_start_date < CURRENT_DATE OR p_end_date < p_start_date OR p_end_date > p_start_date + 179 THEN RAISE EXCEPTION 'El rango de disponibilidad no es válido'; END IF;
   IF p_capacity IS NOT NULL AND p_capacity < 1 THEN RAISE EXCEPTION 'La capacidad debe ser al menos 1'; END IF;
   IF p_price_override IS NOT NULL AND p_price_override < 0 THEN RAISE EXCEPTION 'El precio especial no puede ser negativo'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value AND status <> 'archived') THEN RAISE EXCEPTION 'La oferta no existe o no pertenece al negocio'; END IF;
@@ -2601,8 +2639,8 @@ RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); affected_days INTEGER;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'availability') THEN RAISE EXCEPTION 'No tienes permiso para gestionar disponibilidad'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
-  IF p_start_date IS NULL OR p_end_date IS NULL OR p_start_date < CURRENT_DATE OR p_end_date < p_start_date OR p_end_date > p_start_date + 179 THEN RAISE EXCEPTION 'El rango de disponibilidad no es vA?lido'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF p_start_date IS NULL OR p_end_date IS NULL OR p_start_date < CURRENT_DATE OR p_end_date < p_start_date OR p_end_date > p_start_date + 179 THEN RAISE EXCEPTION 'El rango de disponibilidad no es válido'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value) THEN RAISE EXCEPTION 'La oferta no pertenece al negocio'; END IF;
   DELETE FROM public.turismo_catalog_availability WHERE item_id = p_item_id AND available_date >= CURRENT_DATE AND available_date BETWEEN p_start_date AND p_end_date;
   GET DIAGNOSTICS affected_days = ROW_COUNT;
@@ -2617,13 +2655,13 @@ RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); promotion_id UUID;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'promotions') THEN RAISE EXCEPTION 'No tienes permiso para gestionar promociones'; END IF;
-  IF NOT public.turismo_feature_enabled('promotions_enabled') THEN RAISE EXCEPTION 'Las promociones estA?n deshabilitadas temporalmente'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
-  IF NULLIF(TRIM(p_title), '') IS NULL OR p_starts_at IS NULL OR p_ends_at IS NULL OR p_ends_at <= p_starts_at THEN RAISE EXCEPTION 'TA?tulo y fechas vA?lidas son obligatorios'; END IF;
-  IF p_promotion_type NOT IN ('percentage','fixed','benefit') THEN RAISE EXCEPTION 'Tipo de promociA?n invA?lido'; END IF;
+  IF NOT public.turismo_feature_enabled('promotions_enabled') THEN RAISE EXCEPTION 'Las promociones están deshabilitadas temporalmente'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF NULLIF(TRIM(p_title), '') IS NULL OR p_starts_at IS NULL OR p_ends_at IS NULL OR p_ends_at <= p_starts_at THEN RAISE EXCEPTION 'Título y fechas válidas son obligatorios'; END IF;
+  IF p_promotion_type NOT IN ('percentage','fixed','benefit') THEN RAISE EXCEPTION 'Tipo de promoción inválido'; END IF;
   IF p_promotion_type = 'percentage' AND (p_discount_value IS NULL OR p_discount_value <= 0 OR p_discount_value > 100) THEN RAISE EXCEPTION 'El porcentaje debe estar entre 0 y 100'; END IF;
   IF p_promotion_type = 'fixed' AND (p_discount_value IS NULL OR p_discount_value <= 0) THEN RAISE EXCEPTION 'El descuento fijo debe ser mayor que cero'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value AND status <> 'archived') THEN RAISE EXCEPTION 'La oferta no existe, no pertenece al negocio o estA? archivada'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value AND status <> 'archived') THEN RAISE EXCEPTION 'La oferta no existe, no pertenece al negocio o está archivada'; END IF;
   INSERT INTO public.turismo_promotions(provider_id, item_id, title, description, code, promotion_type, discount_value, starts_at, ends_at) VALUES (provider_id_value, p_item_id, TRIM(p_title), NULLIF(TRIM(p_description), ''), NULLIF(TRIM(p_code), ''), p_promotion_type, p_discount_value, p_starts_at, p_ends_at) RETURNING id INTO promotion_id;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'promotion_created', promotion_id::TEXT, jsonb_build_object('provider_id', provider_id_value, 'item_id', p_item_id, 'promotion_type', p_promotion_type));
   RETURN promotion_id;
@@ -2636,13 +2674,13 @@ RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); promotion_id UUID;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'promotions') THEN RAISE EXCEPTION 'No tienes permiso para gestionar promociones'; END IF;
-  IF NOT public.turismo_feature_enabled('promotions_enabled') THEN RAISE EXCEPTION 'Las promociones estA?n deshabilitadas temporalmente'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
-  IF NULLIF(TRIM(p_title), '') IS NULL OR p_starts_at IS NULL OR p_ends_at IS NULL OR p_ends_at <= p_starts_at THEN RAISE EXCEPTION 'TA?tulo y fechas vA?lidas son obligatorios'; END IF;
-  IF p_promotion_type NOT IN ('percentage','fixed','benefit') OR (p_promotion_type = 'percentage' AND (p_discount_value IS NULL OR p_discount_value <= 0 OR p_discount_value > 100)) OR (p_promotion_type = 'fixed' AND (p_discount_value IS NULL OR p_discount_value <= 0)) THEN RAISE EXCEPTION 'Los datos de promociA?n no son vA?lidos'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value AND status <> 'archived') THEN RAISE EXCEPTION 'La oferta no existe, no pertenece al negocio o estA? archivada'; END IF;
+  IF NOT public.turismo_feature_enabled('promotions_enabled') THEN RAISE EXCEPTION 'Las promociones están deshabilitadas temporalmente'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF NULLIF(TRIM(p_title), '') IS NULL OR p_starts_at IS NULL OR p_ends_at IS NULL OR p_ends_at <= p_starts_at THEN RAISE EXCEPTION 'Título y fechas válidas son obligatorios'; END IF;
+  IF p_promotion_type NOT IN ('percentage','fixed','benefit') OR (p_promotion_type = 'percentage' AND (p_discount_value IS NULL OR p_discount_value <= 0 OR p_discount_value > 100)) OR (p_promotion_type = 'fixed' AND (p_discount_value IS NULL OR p_discount_value <= 0)) THEN RAISE EXCEPTION 'Los datos de promoción no son válidos'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = p_item_id AND provider_id = provider_id_value AND status <> 'archived') THEN RAISE EXCEPTION 'La oferta no existe, no pertenece al negocio o está archivada'; END IF;
   UPDATE public.turismo_promotions SET item_id = p_item_id, title = TRIM(p_title), description = NULLIF(TRIM(p_description), ''), code = NULLIF(TRIM(p_code), ''), promotion_type = p_promotion_type, discount_value = p_discount_value, starts_at = p_starts_at, ends_at = p_ends_at, updated_at = NOW() WHERE id = p_promotion_id AND provider_id = provider_id_value RETURNING id INTO promotion_id;
-  IF promotion_id IS NULL THEN RAISE EXCEPTION 'La promociA?n no existe o no pertenece al negocio'; END IF;
+  IF promotion_id IS NULL THEN RAISE EXCEPTION 'La promoción no existe o no pertenece al negocio'; END IF;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'promotion_updated', promotion_id::TEXT, jsonb_build_object('provider_id', provider_id_value, 'item_id', p_item_id, 'promotion_type', p_promotion_type));
   RETURN promotion_id;
 END;
@@ -2654,9 +2692,9 @@ RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid());
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'promotions') THEN RAISE EXCEPTION 'No tienes permiso para gestionar promociones'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
   UPDATE public.turismo_promotions SET is_active = FALSE, updated_at = NOW() WHERE id = p_promotion_id AND provider_id = provider_id_value;
-  IF NOT FOUND THEN RAISE EXCEPTION 'La promociA?n no existe o no pertenece al negocio'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'La promoción no existe o no pertenece al negocio'; END IF;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'promotion_deactivated', p_promotion_id::TEXT, jsonb_build_object('provider_id', provider_id_value));
 END;
 $$;
@@ -2667,11 +2705,11 @@ RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE provider_id_value UUID := COALESCE(p_provider_id, auth.uid()); current_status TEXT; next_status TEXT; reservation_row public.turismo_reservations%ROWTYPE; effective_amount NUMERIC; rate_value NUMERIC;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_can_manage_provider(provider_id_value, 'reservations') THEN RAISE EXCEPTION 'No tienes permiso para gestionar reservas'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
   SELECT * INTO reservation_row FROM public.turismo_reservations WHERE id = p_reservation_id AND provider_id = provider_id_value;
   IF NOT FOUND THEN RAISE EXCEPTION 'Reserva no encontrada o no pertenece al negocio'; END IF;
   current_status := reservation_row.status; next_status := CASE WHEN p_action = 'confirm' AND current_status = 'requested' THEN 'confirmed' WHEN p_action = 'reject' AND current_status = 'requested' THEN 'rejected' WHEN p_action = 'complete' AND current_status = 'confirmed' THEN 'completed' ELSE NULL END;
-  IF next_status IS NULL THEN RAISE EXCEPTION 'TransiciA?n de reserva invA?lida'; END IF;
+  IF next_status IS NULL THEN RAISE EXCEPTION 'Transición de reserva inválida'; END IF;
   effective_amount := COALESCE(p_quoted_amount, reservation_row.quoted_amount, 0); rate_value := COALESCE(reservation_row.commission_rate_snapshot, 0);
   UPDATE public.turismo_reservations SET status = next_status, quoted_amount = COALESCE(p_quoted_amount, quoted_amount), provider_response = COALESCE(NULLIF(TRIM(p_response), ''), provider_response), updated_at = NOW() WHERE id = p_reservation_id;
   IF reservation_row.affiliate_id IS NOT NULL AND next_status = 'confirmed' AND effective_amount > 0 THEN
@@ -2708,10 +2746,10 @@ RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE created_id UUID; reservation_row public.turismo_reservations%ROWTYPE; catalog_provider_id UUID; has_manage BOOLEAN;
 BEGIN
   IF NOT public.turismo_feature_enabled('support_enabled') THEN RAISE EXCEPTION 'El soporte está deshabilitado temporalmente'; END IF;
-  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN RAISE EXCEPTION 'AutenticaciA?n y cuenta activa requeridas'; END IF;
-  IF p_category IS NULL OR p_category NOT IN ('reservation','catalog','account','refund','technical','other') THEN RAISE EXCEPTION 'CategorA?a de soporte invA?lida'; END IF;
-  IF p_priority IS NULL OR p_priority NOT IN ('low','normal','high','urgent') THEN RAISE EXCEPTION 'Prioridad invA?lida'; END IF;
-  IF NULLIF(TRIM(p_subject), '') IS NULL OR NULLIF(TRIM(p_description), '') IS NULL THEN RAISE EXCEPTION 'Asunto y descripciA?n son obligatorios'; END IF;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN RAISE EXCEPTION 'Autenticación y cuenta activa requeridas'; END IF;
+  IF p_category IS NULL OR p_category NOT IN ('reservation','catalog','account','refund','technical','other') THEN RAISE EXCEPTION 'Categoría de soporte inválida'; END IF;
+  IF p_priority IS NULL OR p_priority NOT IN ('low','normal','high','urgent') THEN RAISE EXCEPTION 'Prioridad inválida'; END IF;
+  IF NULLIF(TRIM(p_subject), '') IS NULL OR NULLIF(TRIM(p_description), '') IS NULL THEN RAISE EXCEPTION 'Asunto y descripción son obligatorios'; END IF;
   has_manage := public.turismo_current_user_has_permission('support:tickets_manage');
   IF p_provider_context_id IS NOT NULL AND NOT public.turismo_can_manage_provider(p_provider_context_id, 'support') THEN RAISE EXCEPTION 'No puedes usar ese negocio como contexto'; END IF;
   IF p_reservation_id IS NOT NULL THEN
@@ -2748,10 +2786,10 @@ RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE reservation_row public.turismo_reservations%ROWTYPE; payment_id UUID;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() OR NOT public.turismo_current_user_has_permission('tourist:book') THEN RAISE EXCEPTION 'Solo un usuario con permiso de reserva puede registrar pagos'; END IF;
-  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma estA? en mantenimiento'; END IF;
-  IF p_method NOT IN ('nequi','daviplata','bank_transfer','cash_provider') OR (p_method = 'bank_transfer' AND NULLIF(TRIM(p_external_reference), '') IS NULL) THEN RAISE EXCEPTION 'MA?todo o referencia invA?lida'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF p_method NOT IN ('nequi','daviplata','bank_transfer','cash_provider') OR (p_method = 'bank_transfer' AND NULLIF(TRIM(p_external_reference), '') IS NULL) THEN RAISE EXCEPTION 'Método o referencia inválida'; END IF;
   SELECT * INTO reservation_row FROM public.turismo_reservations WHERE id = p_reservation_id AND tourist_id = auth.uid() AND status IN ('confirmed','completed');
-  IF NOT FOUND OR reservation_row.quoted_amount IS NULL OR reservation_row.quoted_amount <= 0 THEN RAISE EXCEPTION 'Solo puedes registrar pagos de reservas confirmadas o completadas con cotizaciA?n'; END IF;
+  IF NOT FOUND OR reservation_row.quoted_amount IS NULL OR reservation_row.quoted_amount <= 0 THEN RAISE EXCEPTION 'Solo puedes registrar pagos de reservas confirmadas o completadas con cotización'; END IF;
   INSERT INTO public.turismo_payment_records(reservation_id, tourist_id, provider_id, amount, currency, method, external_reference, notes) VALUES (p_reservation_id, auth.uid(), reservation_row.provider_id, reservation_row.quoted_amount, reservation_row.currency, p_method, NULLIF(TRIM(p_external_reference), ''), NULLIF(TRIM(p_notes), '')) RETURNING id INTO payment_id;
   INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'external_payment_declared', payment_id::TEXT, jsonb_build_object('reservation_id', p_reservation_id, 'method', p_method));
   RETURN payment_id;
@@ -2761,14 +2799,14 @@ $$;
 CREATE OR REPLACE FUNCTION public.turismo_get_my_account_deletion_request()
 RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'AutenticaciA?n requerida'; END IF;
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Autenticación requerida'; END IF;
   RETURN (SELECT to_jsonb(r) FROM public.turismo_account_deletion_requests r WHERE r.user_id = auth.uid() AND r.status = 'pending' LIMIT 1);
 END;
 $$;
 CREATE OR REPLACE FUNCTION public.turismo_cancel_account_deletion_request()
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'AutenticaciA?n requerida'; END IF;
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Autenticación requerida'; END IF;
   UPDATE public.turismo_account_deletion_requests SET status = 'cancelled' WHERE user_id = auth.uid() AND status = 'pending';
   IF NOT FOUND THEN RAISE EXCEPTION 'No tienes una solicitud pendiente'; END IF;
 END;
@@ -2798,105 +2836,1916 @@ REVOKE ALL ON FUNCTION public.turismo_register_referral_visit(TEXT, TEXT, TEXT) 
 GRANT EXECUTE ON FUNCTION public.turismo_register_referral_visit(TEXT, TEXT, TEXT) TO anon, authenticated;
 
 INSERT INTO public.turismo_schema_version(version, migration_name) VALUES (13, '13_stabilization_data_integrity.sql') ON CONFLICT (version) DO NOTHING;
-COMMIT;
 
--- Comportamiento final de cuenta base para instalaciones frescas.
-UPDATE public.turismo_roles SET description='Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.', is_active=TRUE, is_protected=FALSE, is_system=FALSE, updated_at=NOW() WHERE code='usuario';
 ALTER TABLE public.turismo_provider_profiles ALTER COLUMN ruc DROP NOT NULL;
 ALTER TABLE public.turismo_provider_profiles ALTER COLUMN razon_social DROP NOT NULL;
 ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN entity_type DROP NOT NULL;
 ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN institutional_id DROP NOT NULL;
 
-CREATE OR REPLACE FUNCTION public.turismo_initialize_user_role_extension(p_user_id UUID,p_role_code TEXT)
-RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+CREATE OR REPLACE FUNCTION public.turismo_initialize_user_role_extension(p_user_id UUID, p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF p_role_code='turista' THEN INSERT INTO turismo_tourist_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='prestador_turistico' THEN INSERT INTO turismo_provider_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='moderador' THEN INSERT INTO turismo_moderator_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='auditor' THEN INSERT INTO turismo_auditor_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='soporte' THEN INSERT INTO turismo_support_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='analista_datos' THEN INSERT INTO turismo_analyst_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code='desarrollador' THEN INSERT INTO turismo_devops_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code IN('funcionario_mincit','camara_comercio') THEN INSERT INTO turismo_regulatory_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
-  ELSIF p_role_code IN('embajador','afiliado') THEN INSERT INTO turismo_affiliate_profiles(profile_id,referral_code) VALUES(p_user_id,'CAJ-'||upper(substr(replace(p_user_id::TEXT,'-',''),1,12))) ON CONFLICT(profile_id) DO NOTHING;
+  IF p_role_code = 'turista' THEN
+    INSERT INTO public.turismo_tourist_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'prestador_turistico' THEN
+    INSERT INTO public.turismo_provider_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'moderador' THEN
+    INSERT INTO public.turismo_moderator_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'auditor' THEN
+    INSERT INTO public.turismo_auditor_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'soporte' THEN
+    INSERT INTO public.turismo_support_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'analista_datos' THEN
+    INSERT INTO public.turismo_analyst_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code = 'desarrollador' THEN
+    INSERT INTO public.turismo_devops_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code IN ('funcionario_mincit', 'camara_comercio') THEN
+    INSERT INTO public.turismo_regulatory_profiles(profile_id)
+    VALUES (p_user_id)
+    ON CONFLICT (profile_id) DO NOTHING;
+  ELSIF p_role_code IN ('embajador', 'afiliado') THEN
+    INSERT INTO public.turismo_affiliate_profiles(profile_id, referral_code)
+    VALUES (p_user_id, 'CAJ-' || upper(substr(replace(p_user_id::TEXT, '-', ''), 1, 12)))
+    ON CONFLICT (profile_id) DO NOTHING;
   END IF;
-END; $$;
+END;
+$$;
 
-CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE base_role_id UUID;
+CREATE OR REPLACE FUNCTION public.turismo_handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE tourist_role_id UUID;
 BEGIN
-  INSERT INTO turismo_profiles(id,email,full_name,phone,document_type,document_number)
-  VALUES(NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',COALESCE((NEW.raw_user_meta_data->>'document_type')::turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number')
-  ON CONFLICT(id) DO UPDATE SET email=EXCLUDED.email,full_name=COALESCE(EXCLUDED.full_name,turismo_profiles.full_name),phone=COALESCE(EXCLUDED.phone,turismo_profiles.phone);
-  SELECT id INTO base_role_id FROM turismo_roles WHERE code='usuario' AND is_active;
-  IF base_role_id IS NULL THEN RAISE EXCEPTION 'El rol base usuario no está configurado; no se puede crear la cuenta'; END IF;
-  INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES(NEW.id,base_role_id,TRUE,TRUE) ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=TRUE;
+  INSERT INTO public.turismo_profiles(
+    id, email, full_name, phone, document_type, document_number, is_active, is_verified
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    NEW.raw_user_meta_data->>'phone',
+    COALESCE((NEW.raw_user_meta_data->>'document_type')::public.turismo_document_type_enum, 'DNI'),
+    NEW.raw_user_meta_data->>'document_number',
+    TRUE,
+    FALSE
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
+    phone = COALESCE(EXCLUDED.phone, public.turismo_profiles.phone);
+
+  SELECT id INTO tourist_role_id
+  FROM public.turismo_roles
+  WHERE code = 'turista' AND is_active AND NOT is_system;
+  IF tourist_role_id IS NULL THEN
+    RAISE EXCEPTION 'El rol Turista no existe o está inactivo; no se puede crear la cuenta';
+  END IF;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary)
+  VALUES (NEW.id, tourist_role_id, TRUE, TRUE)
+  ON CONFLICT (user_id, role_id) DO UPDATE
+    SET is_active = TRUE, is_primary = TRUE;
+
+  PERFORM public.turismo_initialize_user_role_extension(NEW.id, 'turista');
   RETURN NEW;
-END; $$;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
-CREATE TRIGGER on_auth_user_created_turismo AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.turismo_handle_new_user();
+CREATE TRIGGER on_auth_user_created_turismo
+AFTER INSERT ON auth.users FOR EACH ROW
+EXECUTE FUNCTION public.turismo_handle_new_user();
 
-CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(p_user_id UUID,p_role_code TEXT,p_make_primary BOOLEAN DEFAULT FALSE)
-RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE target_role turismo_roles%ROWTYPE; has_primary_human BOOLEAN; has_devops BOOLEAN; caller_is_super BOOLEAN;
+CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(p_user_id UUID, p_role_code TEXT, p_make_primary BOOLEAN DEFAULT FALSE)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_role public.turismo_roles%ROWTYPE;
+  has_primary_human BOOLEAN;
+  has_devops BOOLEAN;
+  caller_is_super BOOLEAN;
 BEGIN
-  IF auth.uid() IS NULL OR NOT turismo_current_user_has_permission('users:manage') THEN RAISE EXCEPTION 'No tienes permiso para gestionar usuarios'; END IF;
-  SELECT * INTO target_role FROM turismo_roles WHERE code=p_role_code AND is_active;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar usuarios';
+  END IF;
+
+  SELECT * INTO target_role
+  FROM public.turismo_roles
+  WHERE code = p_role_code
+    AND is_active = TRUE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'El rol no existe o está inactivo';
+  END IF;
+  IF target_role.is_system THEN
+    RAISE EXCEPTION 'Los roles de sistema no se asignan a personas';
+  END IF;
+  IF p_role_code = 'usuario' THEN RAISE EXCEPTION 'El rol Usuario es legado y no admite nuevas asignaciones'; END IF;
+
+  caller_is_super := public.turismo_is_super_admin();
+  IF target_role.is_protected AND NOT caller_is_super THEN
+    RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND r.is_protected
+  ) THEN
+    RAISE EXCEPTION 'El usuario tiene un rol protegido';
+  END IF;
+
+  IF p_role_code IN ('funcionario_mincit', 'camara_comercio')
+     AND EXISTS (
+       SELECT 1
+       FROM public.turismo_user_roles ur
+       JOIN public.turismo_roles r ON r.id = ur.role_id
+       WHERE ur.user_id = p_user_id
+         AND ur.is_active
+         AND r.is_active
+         AND r.is_system = FALSE
+         AND r.code = CASE p_role_code
+           WHEN 'funcionario_mincit' THEN 'camara_comercio'
+           ELSE 'funcionario_mincit'
+         END
+     ) THEN
+    RAISE EXCEPTION 'Los roles MinCIT/FONTUR y Cámara de Comercio son mutuamente excluyentes';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND r.is_active
+      AND r.is_system = FALSE
+      AND r.code = 'desarrollador'
+  ) INTO has_devops;
+
+  IF p_role_code = 'desarrollador' AND EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND r.is_active
+      AND r.is_system = FALSE
+      AND r.code <> 'desarrollador'
+  ) THEN
+    RAISE EXCEPTION 'DevOps debe permanecer aislado de los roles de negocio';
+  END IF;
+  IF has_devops AND p_role_code <> 'desarrollador' THEN
+    RAISE EXCEPTION 'DevOps no puede coexistir con roles de negocio';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND ur.is_primary
+      AND r.is_active
+      AND r.is_system = FALSE
+  ) INTO has_primary_human;
+
+  IF p_make_primary OR NOT has_primary_human THEN
+    UPDATE public.turismo_user_roles
+    SET is_primary = FALSE
+    WHERE user_id = p_user_id
+      AND is_active;
+  END IF;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary, assigned_by)
+  VALUES (p_user_id, target_role.id, TRUE, (p_make_primary OR NOT has_primary_human), auth.uid())
+  ON CONFLICT (user_id, role_id) DO UPDATE SET
+    is_active = TRUE,
+    is_primary = CASE
+      WHEN p_make_primary OR NOT has_primary_human THEN TRUE
+      ELSE public.turismo_user_roles.is_primary
+    END,
+    assigned_by = auth.uid(),
+    assigned_at = NOW();
+
+  PERFORM public.turismo_initialize_user_role_extension(p_user_id, target_role.code);
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_role_assigned', p_user_id::TEXT,
+    jsonb_build_object('role_code', target_role.code, 'make_primary', p_make_primary));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_revoke_user_role(p_user_id UUID, p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_id UUID;
+  was_primary BOOLEAN;
+  remaining INTEGER;
+  caller_is_super BOOLEAN;
+  target_protected BOOLEAN;
+  target_system BOOLEAN;
+  fallback_role_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar usuarios';
+  END IF;
+
+
+  SELECT r.id, ur.is_primary, r.is_protected, r.is_system
+  INTO target_id, was_primary, target_protected, target_system
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles r ON r.id = ur.role_id
+  WHERE ur.user_id = p_user_id
+    AND r.code = p_role_code
+    AND ur.is_active;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'El rol no está asignado';
+  END IF;
+
+  caller_is_super := public.turismo_is_super_admin();
+  IF (target_protected OR target_system) AND NOT caller_is_super THEN
+    RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos o del sistema';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND r.is_protected
+  ) THEN
+    RAISE EXCEPTION 'El usuario tiene un rol protegido';
+  END IF;
+
+  SELECT COUNT(*) INTO remaining
+  FROM public.turismo_user_roles
+  WHERE user_id = p_user_id
+    AND is_active;
+
+
+  IF was_primary OR NOT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND ur.is_primary
+      AND r.is_active
+      AND r.is_system = FALSE
+  ) THEN
+    SELECT ur.role_id INTO fallback_role_id
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND ur.role_id <> target_id
+      AND r.is_active
+      AND r.is_system = FALSE
+    ORDER BY CASE WHEN r.code = 'turista' THEN 0 ELSE 1 END, ur.assigned_at ASC, ur.role_id
+    LIMIT 1;
+    IF fallback_role_id IS NULL AND NOT target_system THEN
+      RAISE EXCEPTION 'No existe un rol humano activo utilizable para el rol principal';
+    END IF;
+  END IF;
+
+  UPDATE public.turismo_user_roles
+  SET is_active = FALSE, is_primary = FALSE
+  WHERE user_id = p_user_id
+    AND role_id = target_id;
+
+  IF was_primary OR NOT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND ur.is_primary
+      AND r.is_active
+      AND r.is_system = FALSE
+  ) THEN
+    UPDATE public.turismo_user_roles
+    SET is_primary = FALSE
+    WHERE user_id = p_user_id
+      AND is_active;
+    IF fallback_role_id IS NOT NULL THEN
+      UPDATE public.turismo_user_roles
+      SET is_primary = TRUE
+      WHERE user_id = p_user_id
+        AND role_id = fallback_role_id
+        AND is_active;
+    END IF;
+  END IF;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_role_revoked', p_user_id::TEXT,
+    jsonb_build_object('role_code', p_role_code, 'was_primary', was_primary));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_primary_user_role(p_user_id UUID, p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_role_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para cambiar el rol principal';
+  END IF;
+  IF NOT public.turismo_is_super_admin() AND EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id
+      AND ur.is_active
+      AND r.is_protected
+  ) THEN
+    RAISE EXCEPTION 'El usuario tiene un rol protegido';
+  END IF;
+
+  SELECT r.id INTO target_role_id
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles r ON r.id = ur.role_id
+  WHERE ur.user_id = p_user_id
+    AND ur.is_active = TRUE
+    AND r.is_active = TRUE
+    AND r.is_system = FALSE
+    AND r.code = p_role_code;
+  IF target_role_id IS NULL THEN
+    RAISE EXCEPTION 'El rol no está asignado activamente o es un rol de sistema';
+  END IF;
+
+  UPDATE public.turismo_user_roles
+  SET is_primary = FALSE
+  WHERE user_id = p_user_id
+    AND is_active;
+  UPDATE public.turismo_user_roles
+  SET is_primary = TRUE
+  WHERE user_id = p_user_id
+    AND role_id = target_role_id
+    AND is_active;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_primary_role_changed', p_user_id::TEXT,
+    jsonb_build_object('role_code', p_role_code));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_role_permissions(p_role_code TEXT, p_permission_codes TEXT[])
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  role_row public.turismo_roles%ROWTYPE;
+  caller_is_super BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('roles:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar permisos';
+  END IF;
+  SELECT * INTO role_row FROM public.turismo_roles WHERE code = p_role_code;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Rol no encontrado';
+  END IF;
+  IF p_role_code = 'usuario' THEN
+    RAISE EXCEPTION 'El rol Usuario es legado y no admite permisos operativos';
+  END IF;
+  IF role_row.is_system THEN
+    RAISE EXCEPTION 'Rol de sistema';
+  END IF;
+  caller_is_super := public.turismo_is_super_admin();
+  IF role_row.is_protected AND NOT caller_is_super THEN
+    RAISE EXCEPTION 'Rol protegido';
+  END IF;
+  IF p_role_code = 'super_admin' THEN
+    RAISE EXCEPTION 'Los permisos de Super Admin son inmutables';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code) WHERE x.code = '*'
+  ) THEN
+    RAISE EXCEPTION 'El permiso * está reservado para super_admin';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1
+    FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+    WHERE x.code NOT IN ('platform:read','content:moderate','content:approve','content:reject','provider:catalog_manage','provider:offers_manage','provider:bookings_view','provider:finances_view','tourist:book','tourist:review','tourist:profile','support:tickets_manage','support:refund_issue','bi:analytics_read','bi:reports_export','ambassador:referral_manage','ambassador:commissions_view')
+  ) THEN
+    RAISE EXCEPTION 'El permiso no está permitido para un administrador';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+    WHERE NOT EXISTS (SELECT 1 FROM public.turismo_permissions p WHERE p.code = x.code)
+  ) THEN
+    RAISE EXCEPTION 'Permiso inexistente';
+  END IF;
+
+  DELETE FROM public.turismo_role_permissions WHERE role_id = role_row.id;
+  INSERT INTO public.turismo_role_permissions(role_id, permission_code)
+  SELECT role_row.id, code
+  FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+  ON CONFLICT DO NOTHING;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'role_permissions_changed', p_role_code,
+    jsonb_build_object('role_code', p_role_code, 'permission_codes', COALESCE(p_permission_codes, ARRAY[]::TEXT[])));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_role_status(p_role_code TEXT, p_is_active BOOLEAN)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_role_id UUID;
+  target_user_id UUID;
+  fallback_role_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_is_super_admin() THEN
+    RAISE EXCEPTION 'Solo Super Admin puede activar roles';
+  END IF;
+  SELECT id INTO target_role_id FROM public.turismo_roles WHERE code = p_role_code;
+  IF target_role_id IS NULL THEN
+    RAISE EXCEPTION 'Rol no encontrado';
+  END IF;
+
+  IF p_role_code = 'super_admin' AND NOT p_is_active THEN
+    RAISE EXCEPTION 'Super Admin no puede desactivarse';
+  END IF;
+
+  UPDATE public.turismo_roles
+  SET is_active = p_is_active, updated_at = NOW()
+  WHERE id = target_role_id;
+
+  IF NOT p_is_active THEN
+    FOR target_user_id IN
+      SELECT DISTINCT ur.user_id
+      FROM public.turismo_user_roles ur
+      WHERE ur.role_id = target_role_id
+        AND ur.is_active
+        AND ur.is_primary
+    LOOP
+      UPDATE public.turismo_user_roles
+      SET is_primary = FALSE
+      WHERE user_id = target_user_id
+        AND is_active;
+
+      SELECT ur.role_id INTO fallback_role_id
+      FROM public.turismo_user_roles ur
+      JOIN public.turismo_roles r ON r.id = ur.role_id
+      WHERE ur.user_id = target_user_id
+        AND ur.is_active
+        AND r.is_active
+        AND r.is_system = FALSE
+      ORDER BY CASE WHEN r.code = 'turista' THEN 0 ELSE 1 END, ur.assigned_at ASC, ur.role_id
+      LIMIT 1;
+
+      IF fallback_role_id IS NOT NULL THEN
+        UPDATE public.turismo_user_roles
+        SET is_primary = TRUE
+        WHERE user_id = target_user_id
+          AND role_id = fallback_role_id
+          AND is_active;
+      END IF;
+    END LOOP;
+  END IF;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'role_status_changed', p_role_code,
+    jsonb_build_object('role_code', p_role_code, 'is_active', p_is_active));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_update_own_provider_profile(
+  p_ruc TEXT, p_razon_social TEXT, p_nombre_comercial TEXT, p_sub_type TEXT, p_org_role TEXT,
+  p_rnt_number TEXT, p_address TEXT, p_latitude DOUBLE PRECISION, p_longitude DOUBLE PRECISION,
+  p_website_url TEXT, p_social_links JSONB, p_specific_metadata JSONB
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_role('prestador_turistico') THEN
+    RAISE EXCEPTION 'El usuario no tiene rol de Prestador Turístico';
+  END IF;
+  INSERT INTO public.turismo_provider_profiles(profile_id, ruc, razon_social, nombre_comercial, sub_type, org_role, rnt_number, address, latitude, longitude, website_url, social_links, specific_metadata)
+  VALUES (
+    auth.uid(), NULLIF(TRIM(p_ruc), ''), NULLIF(TRIM(p_razon_social), ''), NULLIF(TRIM(p_nombre_comercial), ''),
+    CASE WHEN p_sub_type IS NULL OR p_sub_type = '' THEN NULL ELSE p_sub_type::public.turismo_provider_sub_type_enum END,
+    CASE WHEN p_org_role IS NULL OR p_org_role = '' THEN 'dueno'::public.turismo_provider_org_role_enum ELSE p_org_role::public.turismo_provider_org_role_enum END,
+    NULLIF(TRIM(p_rnt_number), ''), NULLIF(TRIM(p_address), ''), p_latitude, p_longitude, NULLIF(TRIM(p_website_url), ''), COALESCE(p_social_links, '{}'), COALESCE(p_specific_metadata, '{}')
+  )
+  ON CONFLICT (profile_id) DO UPDATE SET
+    ruc = COALESCE(EXCLUDED.ruc, public.turismo_provider_profiles.ruc),
+    razon_social = COALESCE(EXCLUDED.razon_social, public.turismo_provider_profiles.razon_social),
+    nombre_comercial = EXCLUDED.nombre_comercial,
+    sub_type = EXCLUDED.sub_type,
+    org_role = EXCLUDED.org_role,
+    rnt_number = EXCLUDED.rnt_number,
+    address = EXCLUDED.address,
+    latitude = EXCLUDED.latitude,
+    longitude = EXCLUDED.longitude,
+    website_url = EXCLUDED.website_url,
+    social_links = EXCLUDED.social_links,
+    specific_metadata = EXCLUDED.specific_metadata,
+    updated_at = NOW();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_update_tourist_preferences(p_preferences TEXT[])
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  cleaned TEXT[];
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede actualizar sus preferencias';
+  END IF;
+  IF COALESCE(array_length(p_preferences, 1), 0) > 9 THEN
+    RAISE EXCEPTION 'Puedes seleccionar máximo 9 intereses';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_preferences, ARRAY[]::TEXT[])) value
+    WHERE LOWER(TRIM(value)) NOT IN ('naturaleza','aventura','gastronomia','cultura','descanso','familia','artesania','eventos','alojamiento')
+  ) THEN
+    RAISE EXCEPTION 'Una preferencia no pertenece al vocabulario permitido';
+  END IF;
+  SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::TEXT[]) INTO cleaned
+  FROM (
+    SELECT DISTINCT LOWER(TRIM(value)) AS value
+    FROM unnest(COALESCE(p_preferences, ARRAY[]::TEXT[])) value
+    WHERE NULLIF(TRIM(value), '') IS NOT NULL
+  ) values_table;
+  UPDATE public.turismo_tourist_profiles
+  SET travel_preferences = cleaned, updated_at = NOW()
+  WHERE profile_id = auth.uid();
+  IF NOT FOUND THEN
+    INSERT INTO public.turismo_tourist_profiles(profile_id, travel_preferences)
+    VALUES (auth.uid(), cleaned);
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_save_itinerary(
+  p_name TEXT, p_days INTEGER, p_interests TEXT[], p_budget_level TEXT, p_items JSONB
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  itinerary_id UUID;
+  item_record RECORD;
+  clean_interests TEXT[];
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede guardar itinerarios';
+  END IF;
+  IF NULLIF(TRIM(p_name), '') IS NULL THEN RAISE EXCEPTION 'El nombre del itinerario es obligatorio'; END IF;
+  IF p_days IS NULL OR p_days NOT BETWEEN 1 AND 7 THEN RAISE EXCEPTION 'El itinerario debe tener entre 1 y 7 días'; END IF;
+  IF p_budget_level NOT IN ('economico','moderado','premium','flexible') THEN RAISE EXCEPTION 'Presupuesto inválido'; END IF;
+  IF COALESCE(array_length(p_interests, 1), 0) > 9 THEN RAISE EXCEPTION 'Puedes seleccionar máximo 9 intereses'; END IF;
+  IF EXISTS (SELECT 1 FROM unnest(COALESCE(p_interests, ARRAY[]::TEXT[])) value WHERE LOWER(TRIM(value)) NOT IN ('naturaleza','aventura','gastronomia','cultura','descanso','familia','artesania','eventos','alojamiento')) THEN RAISE EXCEPTION 'Un interés no es válido'; END IF;
+  SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::TEXT[]) INTO clean_interests
+  FROM (SELECT DISTINCT LOWER(TRIM(value)) value FROM unnest(COALESCE(p_interests, ARRAY[]::TEXT[])) value WHERE NULLIF(TRIM(value),'') IS NOT NULL) values_table;
+  IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN RAISE EXCEPTION 'Los elementos del itinerario deben ser un arreglo'; END IF;
+  FOR item_record IN SELECT * FROM jsonb_to_recordset(p_items) AS x(catalog_item_id UUID, day_number INTEGER, slot TEXT, position INTEGER) LOOP
+    IF item_record.catalog_item_id IS NULL OR item_record.day_number IS NULL OR item_record.day_number NOT BETWEEN 1 AND p_days OR item_record.slot NOT IN ('morning','midday','afternoon','evening') OR COALESCE(item_record.position, 0) < 0 THEN RAISE EXCEPTION 'Un elemento del itinerario tiene una estructura inválida'; END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = item_record.catalog_item_id AND status = 'published') THEN RAISE EXCEPTION 'Todos los elementos deben pertenecer al catálogo publicado'; END IF;
+  END LOOP;
+  INSERT INTO public.turismo_itineraries(tourist_id, name, days, interests, budget_level) VALUES (auth.uid(), TRIM(p_name), p_days, clean_interests, p_budget_level) RETURNING id INTO itinerary_id;
+  INSERT INTO public.turismo_itinerary_items(itinerary_id, catalog_item_id, day_number, slot, position)
+  SELECT itinerary_id, x.catalog_item_id, x.day_number, x.slot, COALESCE(x.position, 0) FROM jsonb_to_recordset(p_items) AS x(catalog_item_id UUID, day_number INTEGER, slot TEXT, position INTEGER);
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'itinerary_saved', itinerary_id::TEXT, jsonb_build_object('days', p_days, 'items', jsonb_array_length(p_items)));
+  RETURN itinerary_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_delete_itinerary(p_itinerary_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede eliminar itinerarios';
+  END IF;
+  DELETE FROM public.turismo_itineraries
+  WHERE id = p_itinerary_id
+    AND tourist_id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Itinerario no encontrado o no te pertenece'; END IF;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details) VALUES (auth.uid(), 'itinerary_deleted', p_itinerary_id::TEXT, '{}'::jsonb);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_get_system_health()
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT (public.turismo_current_user_has_permission('devops:infra_manage') OR public.turismo_is_super_admin()) THEN
+    RAISE EXCEPTION 'No tienes permiso para consultar la salud del sistema';
+  END IF;
+  RETURN jsonb_build_object(
+    'database_time', NOW(),
+    'active_users', (SELECT COUNT(*) FROM public.turismo_profiles WHERE is_active),
+    'active_roles', (SELECT COUNT(*) FROM public.turismo_user_roles WHERE is_active),
+    'published_catalog', (SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status = 'published'),
+    'open_support_tickets', (SELECT COUNT(*) FROM public.turismo_support_tickets WHERE status IN ('open','in_progress','waiting_user')),
+    'pending_catalog_moderation', (SELECT COUNT(*) FROM public.turismo_catalog_items WHERE status = 'pending_review'),
+    'pending_reviews', (SELECT COUNT(*) FROM public.turismo_reviews WHERE status = 'pending'),
+    'pending_deletion_requests', (SELECT COUNT(*) FROM public.turismo_account_deletion_requests WHERE status = 'pending'),
+    'latest_audit_event_at', (SELECT MAX(created_at) FROM public.turismo_audit_logs),
+    'notification_count_24h', (SELECT COUNT(*) FROM public.turismo_notifications WHERE created_at >= NOW() - INTERVAL '24 hours'),
+    'schema_version', (SELECT COALESCE(MAX(version), 0) FROM public.turismo_schema_version)
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.turismo_initialize_user_role_extension(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.turismo_handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.turismo_assign_user_role(UUID, TEXT, BOOLEAN), public.turismo_revoke_user_role(UUID, TEXT), public.turismo_set_primary_user_role(UUID, TEXT), public.turismo_set_role_permissions(TEXT, TEXT[]), public.turismo_set_role_status(TEXT, BOOLEAN), public.turismo_update_own_provider_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, JSONB, JSONB), public.turismo_update_tourist_preferences(TEXT[]), public.turismo_save_itinerary(TEXT, INTEGER, TEXT[], TEXT, JSONB), public.turismo_delete_itinerary(UUID), public.turismo_get_system_health() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.turismo_assign_user_role(UUID, TEXT, BOOLEAN), public.turismo_revoke_user_role(UUID, TEXT), public.turismo_set_primary_user_role(UUID, TEXT), public.turismo_set_role_permissions(TEXT, TEXT[]), public.turismo_set_role_status(TEXT, BOOLEAN), public.turismo_update_own_provider_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DOUBLE PRECISION, DOUBLE PRECISION, TEXT, JSONB, JSONB), public.turismo_update_tourist_preferences(TEXT[]), public.turismo_save_itinerary(TEXT, INTEGER, TEXT[], TEXT, JSONB), public.turismo_delete_itinerary(UUID), public.turismo_get_system_health() TO authenticated;
+
+INSERT INTO public.turismo_schema_version(version, migration_name)
+VALUES (14, '14_default_user_role_and_role_switching.sql'),
+       (15, '15_final_account_rbac_hardening.sql')
+ON CONFLICT (version) DO UPDATE SET migration_name = EXCLUDED.migration_name;
+
+
+
+
+
+
+
+UPDATE public.turismo_roles
+SET name = 'Usuario legado',
+    description = 'Rol histórico de compatibilidad. Las nuevas cuentas utilizan el rol Turista.',
+    is_active = TRUE,
+    is_protected = FALSE,
+    is_system = FALSE,
+    updated_at = NOW()
+WHERE code = 'usuario';
+
+UPDATE public.turismo_roles
+SET name = 'Turista',
+    description = 'Usuario final que explora, planifica y reserva experiencias turísticas.',
+    updated_at = NOW()
+WHERE code = 'turista';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.turismo_roles
+    WHERE code = 'usuario' AND is_active AND NOT is_protected AND NOT is_system
+  ) THEN
+    RAISE EXCEPTION 'No se pudo conservar el rol legado Usuario';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.turismo_roles
+    WHERE code = 'turista' AND is_active AND NOT is_system
+  ) THEN
+    RAISE EXCEPTION 'El rol Turista debe existir y estar activo para corregir el modelo de cuentas';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_role_has_dashboard(p_role_code TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql IMMUTABLE PARALLEL SAFE
+AS $$
+  SELECT COALESCE(p_role_code = ANY (ARRAY[
+    'turista', 'prestador_turistico', 'admin', 'super_admin', 'moderador',
+    'auditor', 'soporte', 'analista_datos', 'desarrollador', 'embajador',
+    'afiliado', 'funcionario_mincit', 'camara_comercio'
+  ]::TEXT[]), FALSE);
+$$;
+
+-- Reconcile legacy Usuario data without guessing which side of a mixed
+-- system/human identity is erroneous. Mixed assignments remain for review.
+DO $$
+DECLARE
+  mixed_system_human_accounts_detected INTEGER := 0;
+  affiliate_without_tourist_detected INTEGER := 0;
+  tourist_assignments_reconciled INTEGER;
+  usuario_assignments_removed INTEGER;
+  usuario_permissions_removed INTEGER;
+  affiliate_tourist_permissions_removed INTEGER;
+  invalid_primaries_cleared INTEGER;
+  primary_assignments_repaired INTEGER := 0;
+  target_user_id UUID;
+  valid_primary_role_id UUID;
+  fallback_role_id UUID;
+BEGIN
+  SELECT COUNT(*)::INTEGER INTO mixed_system_human_accounts_detected
+  FROM (
+    SELECT ur.user_id
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.is_active
+    GROUP BY ur.user_id
+    HAVING BOOL_OR(r.is_system) AND BOOL_OR(NOT r.is_system)
+  ) mixed_accounts;
+
+  SELECT COUNT(DISTINCT ur.user_id)::INTEGER INTO affiliate_without_tourist_detected
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles growth_role ON growth_role.id = ur.role_id
+  WHERE ur.is_active AND growth_role.is_active
+    AND growth_role.code IN ('afiliado', 'embajador')
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.turismo_user_roles tourist_assignment
+      JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+      WHERE tourist_assignment.user_id = ur.user_id
+        AND tourist_assignment.is_active
+        AND tourist_role.is_active
+        AND tourist_role.code = 'turista'
+        AND NOT tourist_role.is_system
+    );
+
+  DELETE FROM public.turismo_role_permissions rp
+  USING public.turismo_roles r
+  WHERE rp.role_id = r.id AND r.code = 'usuario';
+  GET DIAGNOSTICS usuario_permissions_removed = ROW_COUNT;
+
+  DELETE FROM public.turismo_role_permissions rp
+  USING public.turismo_roles r
+  WHERE rp.role_id = r.id
+    AND r.code IN ('afiliado', 'embajador')
+    AND rp.permission_code IN ('tourist:book', 'tourist:review', 'tourist:profile');
+  GET DIAGNOSTICS affiliate_tourist_permissions_removed = ROW_COUNT;
+
+  CREATE TEMP TABLE _turismo_m16_usuario_accounts ON COMMIT DROP AS
+  SELECT DISTINCT ur.user_id
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles usuario_role ON usuario_role.id = ur.role_id
+  WHERE ur.is_active
+    AND usuario_role.code = 'usuario'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.turismo_user_roles system_assignment
+      JOIN public.turismo_roles system_role ON system_role.id = system_assignment.role_id
+      WHERE system_assignment.user_id = ur.user_id
+        AND system_assignment.is_active
+        AND system_role.is_system
+    );
+
+  CREATE TEMP TABLE _turismo_m16_usuario_only ON COMMIT DROP AS
+  SELECT legacy.user_id
+  FROM _turismo_m16_usuario_accounts legacy
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles other_assignment
+    JOIN public.turismo_roles other_role ON other_role.id = other_assignment.role_id
+    WHERE other_assignment.user_id = legacy.user_id
+      AND other_assignment.is_active
+      AND other_role.is_active
+      AND NOT other_role.is_system
+      AND other_role.code <> 'usuario'
+  );
+
+  -- A legacy-only account becomes a Turista account. Clear the old primary
+  -- first so the partial unique index remains valid during the upsert.
+  UPDATE public.turismo_user_roles assignment
+  SET is_primary = FALSE
+  WHERE assignment.user_id IN (SELECT user_id FROM _turismo_m16_usuario_only)
+    AND assignment.is_active
+    AND assignment.is_primary;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary)
+  SELECT only_account.user_id, tourist_role.id, TRUE, TRUE
+  FROM _turismo_m16_usuario_only only_account
+  CROSS JOIN public.turismo_roles tourist_role
+  WHERE tourist_role.code = 'turista'
+    AND tourist_role.is_active
+    AND NOT tourist_role.is_system
+  ON CONFLICT (user_id, role_id) DO UPDATE
+    SET is_active = TRUE, is_primary = TRUE;
+
+  GET DIAGNOSTICS tourist_assignments_reconciled = ROW_COUNT;
+
+  INSERT INTO public.turismo_tourist_profiles(profile_id)
+  SELECT user_id FROM _turismo_m16_usuario_only
+  ON CONFLICT (profile_id) DO NOTHING;
+
+  UPDATE public.turismo_user_roles assignment
+  SET is_active = FALSE, is_primary = FALSE
+  FROM public.turismo_roles legacy_role
+  WHERE assignment.role_id = legacy_role.id
+    AND legacy_role.code = 'usuario'
+    AND assignment.is_active
+    AND assignment.user_id IN (SELECT user_id FROM _turismo_m16_usuario_accounts);
+  GET DIAGNOSTICS usuario_assignments_removed = ROW_COUNT;
+
+  UPDATE public.turismo_user_roles assignment
+  SET is_primary = FALSE
+  FROM public.turismo_roles assigned_role
+  WHERE assignment.role_id = assigned_role.id
+    AND assignment.is_active
+    AND assignment.is_primary
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.turismo_user_roles system_assignment
+      JOIN public.turismo_roles system_role ON system_role.id = system_assignment.role_id
+      WHERE system_assignment.user_id = assignment.user_id
+        AND system_assignment.is_active
+        AND system_role.is_system
+    )
+    AND (
+      NOT assigned_role.is_active
+      OR assigned_role.is_system
+      OR assigned_role.code = 'usuario'
+      OR NOT public.turismo_role_has_dashboard(assigned_role.code)
+      OR (
+        assigned_role.code IN ('afiliado', 'embajador')
+        AND NOT EXISTS (
+          SELECT 1
+          FROM public.turismo_user_roles tourist_assignment
+          JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+          WHERE tourist_assignment.user_id = assignment.user_id
+            AND tourist_assignment.is_active
+            AND tourist_role.is_active
+            AND tourist_role.code = 'turista'
+            AND NOT tourist_role.is_system
+        )
+      )
+    );
+  GET DIAGNOSTICS invalid_primaries_cleared = ROW_COUNT;
+
+  -- Keep an existing valid primary. If the legacy assignment was primary (or
+  -- the old primary has no dashboard), choose Turista, then the oldest routed
+  -- active non-system role.
+  FOR target_user_id IN
+    SELECT p.id
+    FROM public.turismo_profiles p
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM public.turismo_user_roles system_assignment
+      JOIN public.turismo_roles system_role ON system_role.id = system_assignment.role_id
+      WHERE system_assignment.user_id = p.id
+        AND system_assignment.is_active
+        AND system_role.is_system
+    )
+  LOOP
+    SELECT ur.role_id INTO valid_primary_role_id
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = target_user_id
+      AND ur.is_active
+      AND ur.is_primary
+      AND r.is_active
+      AND NOT r.is_system
+      AND r.code <> 'usuario'
+      AND public.turismo_role_has_dashboard(r.code)
+      AND (
+        r.code NOT IN ('afiliado', 'embajador')
+        OR EXISTS (
+          SELECT 1
+          FROM public.turismo_user_roles tourist_assignment
+          JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+          WHERE tourist_assignment.user_id = ur.user_id
+            AND tourist_assignment.is_active
+            AND tourist_role.is_active
+            AND tourist_role.code = 'turista'
+            AND NOT tourist_role.is_system
+        )
+      )
+    LIMIT 1;
+
+    IF valid_primary_role_id IS NULL THEN
+      UPDATE public.turismo_user_roles
+      SET is_primary = FALSE
+      WHERE user_id = target_user_id AND is_active AND is_primary;
+
+      SELECT ur.role_id INTO fallback_role_id
+      FROM public.turismo_user_roles ur
+      JOIN public.turismo_roles r ON r.id = ur.role_id
+      WHERE ur.user_id = target_user_id
+        AND ur.is_active
+        AND r.is_active
+        AND NOT r.is_system
+        AND r.code <> 'usuario'
+        AND public.turismo_role_has_dashboard(r.code)
+        AND (
+          r.code NOT IN ('afiliado', 'embajador')
+          OR EXISTS (
+            SELECT 1
+            FROM public.turismo_user_roles tourist_assignment
+            JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+            WHERE tourist_assignment.user_id = ur.user_id
+              AND tourist_assignment.is_active
+              AND tourist_role.is_active
+              AND tourist_role.code = 'turista'
+              AND NOT tourist_role.is_system
+          )
+        )
+      ORDER BY CASE WHEN r.code = 'turista' THEN 0 ELSE 1 END,
+               ur.assigned_at ASC, ur.role_id
+      LIMIT 1;
+
+      IF fallback_role_id IS NOT NULL THEN
+        UPDATE public.turismo_user_roles
+        SET is_primary = TRUE
+        WHERE user_id = target_user_id
+          AND role_id = fallback_role_id
+          AND is_active;
+        primary_assignments_repaired := primary_assignments_repaired + 1;
+      END IF;
+    END IF;
+  END LOOP;
+
+  IF mixed_system_human_accounts_detected > 0
+     OR affiliate_without_tourist_detected > 0
+     OR tourist_assignments_reconciled > 0
+     OR usuario_assignments_removed > 0
+     OR usuario_permissions_removed > 0
+     OR affiliate_tourist_permissions_removed > 0
+     OR invalid_primaries_cleared > 0
+     OR primary_assignments_repaired > 0 THEN
+    INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+    VALUES (
+      NULL,
+      'rbac_legacy_usuario_reconciled',
+      'migration:16_correct_account_role_semantics.sql',
+      jsonb_build_object(
+        'mixed_system_human_accounts_detected', mixed_system_human_accounts_detected,
+        'affiliate_without_tourist_detected', affiliate_without_tourist_detected,
+        'tourist_assignments_reconciled', tourist_assignments_reconciled,
+        'usuario_assignments_deactivated', usuario_assignments_removed,
+        'usuario_permissions_removed', usuario_permissions_removed,
+        'affiliate_tourist_permissions_removed', affiliate_tourist_permissions_removed,
+        'invalid_primaries_cleared', invalid_primaries_cleared,
+        'primary_assignments_repaired', primary_assignments_repaired
+      )
+    );
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE tourist_role_id UUID;
+BEGIN
+  INSERT INTO public.turismo_profiles(
+    id, email, full_name, phone, document_type, document_number, is_active, is_verified
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    NEW.raw_user_meta_data->>'phone',
+    COALESCE((NEW.raw_user_meta_data->>'document_type')::public.turismo_document_type_enum, 'DNI'),
+    NEW.raw_user_meta_data->>'document_number',
+    TRUE,
+    FALSE
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(EXCLUDED.full_name, public.turismo_profiles.full_name),
+    phone = COALESCE(EXCLUDED.phone, public.turismo_profiles.phone);
+
+  SELECT id INTO tourist_role_id
+  FROM public.turismo_roles
+  WHERE code = 'turista' AND is_active AND NOT is_system;
+  IF tourist_role_id IS NULL THEN
+    RAISE EXCEPTION 'El rol Turista no existe o está inactivo; no se puede crear la cuenta';
+  END IF;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary)
+  VALUES (NEW.id, tourist_role_id, TRUE, TRUE)
+  ON CONFLICT (user_id, role_id) DO UPDATE
+    SET is_active = TRUE, is_primary = TRUE;
+
+  PERFORM public.turismo_initialize_user_role_extension(NEW.id, 'turista');
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created_turismo ON auth.users;
+CREATE TRIGGER on_auth_user_created_turismo
+AFTER INSERT ON auth.users FOR EACH ROW
+EXECUTE FUNCTION public.turismo_handle_new_user();
+
+CREATE OR REPLACE FUNCTION public.turismo_assign_user_role(
+  p_user_id UUID, p_role_code TEXT, p_make_primary BOOLEAN DEFAULT FALSE
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_role public.turismo_roles%ROWTYPE;
+  has_primary_routed_role BOOLEAN;
+  has_devops BOOLEAN;
+  caller_is_super BOOLEAN;
+  make_primary BOOLEAN := COALESCE(p_make_primary, FALSE);
+  assign_as_primary BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar usuarios';
+  END IF;
+  IF p_role_code = 'usuario' THEN
+    RAISE EXCEPTION 'El rol Usuario es legado y no admite nuevas asignaciones';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.turismo_profiles WHERE id = p_user_id) THEN
+    RAISE EXCEPTION 'La cuenta objetivo no existe';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_system
+  ) THEN
+    RAISE EXCEPTION 'Las identidades de sistema no pueden recibir roles humanos';
+  END IF;
+
+  SELECT * INTO target_role
+  FROM public.turismo_roles
+  WHERE code = p_role_code AND is_active;
   IF NOT FOUND THEN RAISE EXCEPTION 'El rol no existe o está inactivo'; END IF;
   IF target_role.is_system THEN RAISE EXCEPTION 'Los roles de sistema no se asignan a personas'; END IF;
-  caller_is_super:=turismo_is_super_admin();
-  IF target_role.is_protected AND NOT caller_is_super THEN RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos'; END IF;
-  IF NOT caller_is_super AND EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.is_protected) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
-  SELECT EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.code='desarrollador') INTO has_devops;
-  IF p_role_code='desarrollador' AND EXISTS(SELECT 1 FROM turismo_user_roles WHERE user_id=p_user_id AND is_active AND role_id<>target_role.id) THEN RAISE EXCEPTION 'DevOps debe permanecer aislado'; END IF;
-  IF has_devops AND p_role_code<>'desarrollador' THEN RAISE EXCEPTION 'DevOps no puede coexistir con roles de negocio'; END IF;
-  SELECT EXISTS(SELECT 1 FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND ur.is_primary AND r.is_active AND NOT r.is_system) INTO has_primary_human;
-  IF p_make_primary OR NOT has_primary_human THEN UPDATE turismo_user_roles SET is_primary=FALSE WHERE user_id=p_user_id AND is_active; END IF;
-  INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary,assigned_by) VALUES(p_user_id,target_role.id,TRUE,(p_make_primary OR NOT has_primary_human),auth.uid())
-  ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=CASE WHEN p_make_primary OR NOT has_primary_human THEN TRUE ELSE turismo_user_roles.is_primary END,assigned_by=auth.uid(),assigned_at=NOW();
-  PERFORM turismo_initialize_user_role_extension(p_user_id,p_role_code);
-END; $$;
-
-CREATE OR REPLACE FUNCTION public.turismo_set_primary_user_role(p_user_id UUID,p_role_code TEXT) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE rid UUID;
-BEGIN
-  IF auth.uid() IS NULL OR NOT turismo_current_user_is_active() THEN RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva'; END IF;
-  IF p_user_id<>auth.uid() AND NOT turismo_current_user_has_permission('users:manage') THEN RAISE EXCEPTION 'No tienes permiso'; END IF;
-  SELECT r.id INTO rid FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.user_id=p_user_id AND ur.is_active AND r.is_active AND NOT r.is_system AND r.code=p_role_code;
-  IF rid IS NULL THEN RAISE EXCEPTION 'El rol no está asignado activamente o es un rol de sistema'; END IF;
-  UPDATE turismo_user_roles SET is_primary=FALSE WHERE user_id=p_user_id AND is_active;
-  UPDATE turismo_user_roles SET is_primary=TRUE WHERE user_id=p_user_id AND role_id=rid;
-END; $$;
-
-CREATE OR REPLACE FUNCTION public.turismo_set_role_status(p_role_code TEXT,p_is_active BOOLEAN) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE rid UUID; target_user UUID;
-BEGIN
-  IF auth.uid() IS NULL OR NOT turismo_is_super_admin() THEN RAISE EXCEPTION 'Solo Super Admin puede activar roles'; END IF;
-  SELECT id INTO rid FROM turismo_roles WHERE code=p_role_code;
-  IF rid IS NULL THEN RAISE EXCEPTION 'Rol no encontrado'; END IF;
-  IF p_role_code='super_admin' AND NOT p_is_active THEN RAISE EXCEPTION 'Super Admin no puede desactivarse'; END IF;
-  UPDATE turismo_roles SET is_active=p_is_active,updated_at=NOW() WHERE id=rid;
-  IF NOT p_is_active THEN
-    UPDATE turismo_user_roles SET is_primary=FALSE WHERE role_id=rid AND is_active;
-    FOR target_user IN SELECT DISTINCT ur.user_id FROM turismo_user_roles ur JOIN turismo_roles r ON r.id=ur.role_id WHERE ur.is_active AND r.is_active AND NOT r.is_system AND NOT EXISTS(SELECT 1 FROM turismo_user_roles cp JOIN turismo_roles cpr ON cpr.id=cp.role_id WHERE cp.user_id=ur.user_id AND cp.is_active AND cp.is_primary AND cpr.is_active AND NOT cpr.is_system)
-    LOOP UPDATE turismo_user_roles SET is_primary=TRUE WHERE user_id=target_user AND role_id=(SELECT fallback.role_id FROM turismo_user_roles fallback JOIN turismo_roles fr ON fr.id=fallback.role_id WHERE fallback.user_id=target_user AND fallback.is_active AND fr.is_active AND NOT fr.is_system ORDER BY fallback.assigned_at LIMIT 1); END LOOP;
+  IF p_role_code IN ('afiliado', 'embajador') AND NOT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+      AND r.code = 'turista' AND NOT r.is_system
+  ) THEN
+    RAISE EXCEPTION 'Afiliado y Embajador requieren que la cuenta tenga también el rol Turista';
   END IF;
-END; $$;
+  IF make_primary AND NOT public.turismo_role_has_dashboard(target_role.code) THEN
+    RAISE EXCEPTION 'El rol no tiene un panel asociado y no puede ser principal';
+  END IF;
 
-ALTER TABLE public.turismo_provider_profiles ALTER COLUMN ruc DROP NOT NULL;
-ALTER TABLE public.turismo_provider_profiles ALTER COLUMN razon_social DROP NOT NULL;
-ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN entity_type DROP NOT NULL;
-ALTER TABLE public.turismo_regulatory_profiles ALTER COLUMN institutional_id DROP NOT NULL;
-REVOKE ALL ON FUNCTION public.turismo_initialize_user_role_extension(UUID,TEXT) FROM PUBLIC,anon,authenticated;
+  caller_is_super := public.turismo_is_super_admin();
+  IF target_role.is_protected AND NOT caller_is_super THEN
+    RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_protected
+  ) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
 
-CREATE OR REPLACE FUNCTION public.turismo_update_own_provider_profile(p_ruc TEXT,p_razon_social TEXT,p_nombre_comercial TEXT,p_sub_type TEXT,p_org_role TEXT,p_rnt_number TEXT,p_address TEXT,p_latitude DOUBLE PRECISION,p_longitude DOUBLE PRECISION,p_website_url TEXT,p_social_links JSONB,p_specific_metadata JSONB)
-RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+  IF p_role_code IN ('funcionario_mincit', 'camara_comercio')
+     AND EXISTS (
+       SELECT 1 FROM public.turismo_user_roles ur
+       JOIN public.turismo_roles r ON r.id = ur.role_id
+       WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+         AND NOT r.is_system
+         AND r.code = CASE p_role_code
+           WHEN 'funcionario_mincit' THEN 'camara_comercio'
+           ELSE 'funcionario_mincit'
+         END
+     ) THEN
+    RAISE EXCEPTION 'Los roles MinCIT/FONTUR y Cámara de Comercio son mutuamente excluyentes';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+      AND NOT r.is_system AND r.code = 'desarrollador'
+  ) INTO has_devops;
+  IF p_role_code = 'desarrollador' AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+      AND NOT r.is_system AND r.code <> 'desarrollador'
+  ) THEN RAISE EXCEPTION 'DevOps debe permanecer aislado de los roles de negocio'; END IF;
+  IF has_devops AND p_role_code <> 'desarrollador' THEN
+    RAISE EXCEPTION 'DevOps no puede coexistir con roles de negocio';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND ur.is_primary
+      AND r.is_active AND NOT r.is_system
+      AND public.turismo_role_has_dashboard(r.code)
+  ) INTO has_primary_routed_role;
+
+  assign_as_primary := make_primary
+    OR (NOT has_primary_routed_role AND public.turismo_role_has_dashboard(target_role.code));
+  IF assign_as_primary THEN
+    UPDATE public.turismo_user_roles
+    SET is_primary = FALSE
+    WHERE user_id = p_user_id AND is_active;
+  END IF;
+
+  INSERT INTO public.turismo_user_roles(user_id, role_id, is_active, is_primary, assigned_by)
+  VALUES (p_user_id, target_role.id, TRUE, assign_as_primary, auth.uid())
+  ON CONFLICT (user_id, role_id) DO UPDATE SET
+    is_active = TRUE,
+    is_primary = CASE
+      WHEN assign_as_primary THEN TRUE
+      WHEN NOT public.turismo_role_has_dashboard(target_role.code) THEN FALSE
+      ELSE public.turismo_user_roles.is_primary
+    END,
+    assigned_by = auth.uid(),
+    assigned_at = NOW();
+
+  PERFORM public.turismo_initialize_user_role_extension(p_user_id, target_role.code);
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_role_assigned', p_user_id::TEXT,
+    jsonb_build_object('role_code', target_role.code, 'make_primary', assign_as_primary));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_revoke_user_role(p_user_id UUID, p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  target_id UUID;
+  was_primary BOOLEAN;
+  caller_is_super BOOLEAN;
+  target_protected BOOLEAN;
+  target_system BOOLEAN;
+  fallback_role_id UUID;
+  valid_primary_exists BOOLEAN;
+  active_super_admin_count INTEGER;
 BEGIN
-  IF auth.uid() IS NULL OR NOT turismo_current_user_is_active() THEN RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva'; END IF;
-  IF NOT turismo_current_user_has_role('prestador_turistico') THEN RAISE EXCEPTION 'El usuario no tiene rol de Prestador Turístico'; END IF;
-  INSERT INTO turismo_provider_profiles(profile_id,ruc,razon_social,nombre_comercial,sub_type,org_role,rnt_number,address,latitude,longitude,website_url,social_links,specific_metadata)
-  VALUES(auth.uid(),NULLIF(TRIM(p_ruc),''),NULLIF(TRIM(p_razon_social),''),NULLIF(TRIM(p_nombre_comercial),''),CASE WHEN p_sub_type IS NULL OR p_sub_type='' THEN NULL ELSE p_sub_type::turismo_provider_sub_type_enum END,CASE WHEN p_org_role IS NULL OR p_org_role='' THEN 'dueno'::turismo_provider_org_role_enum ELSE p_org_role::turismo_provider_org_role_enum END,NULLIF(TRIM(p_rnt_number),''),NULLIF(TRIM(p_address),''),p_latitude,p_longitude,NULLIF(TRIM(p_website_url),''),COALESCE(p_social_links,'{}'),COALESCE(p_specific_metadata,'{}'))
-  ON CONFLICT(profile_id) DO UPDATE SET ruc=COALESCE(EXCLUDED.ruc,turismo_provider_profiles.ruc),razon_social=COALESCE(EXCLUDED.razon_social,turismo_provider_profiles.razon_social),nombre_comercial=EXCLUDED.nombre_comercial,sub_type=EXCLUDED.sub_type,org_role=EXCLUDED.org_role,rnt_number=EXCLUDED.rnt_number,address=EXCLUDED.address,latitude=EXCLUDED.latitude,longitude=EXCLUDED.longitude,website_url=EXCLUDED.website_url,social_links=EXCLUDED.social_links,specific_metadata=EXCLUDED.specific_metadata,updated_at=NOW();
-END; $$;
-INSERT INTO public.turismo_schema_version(version,migration_name) VALUES (14,'14_default_user_role_and_role_switching.sql') ON CONFLICT (version) DO UPDATE SET migration_name=EXCLUDED.migration_name;
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar usuarios';
+  END IF;
+
+  SELECT r.id, ur.is_primary, r.is_protected, r.is_system
+  INTO target_id, was_primary, target_protected, target_system
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles r ON r.id = ur.role_id
+  WHERE ur.user_id = p_user_id AND r.code = p_role_code AND ur.is_active;
+  IF NOT FOUND THEN RAISE EXCEPTION 'El rol no está asignado activamente'; END IF;
+
+  caller_is_super := public.turismo_is_super_admin();
+  IF (target_protected OR target_system) AND NOT caller_is_super THEN
+    RAISE EXCEPTION 'Solo Super Admin puede gestionar roles protegidos o del sistema';
+  END IF;
+  IF p_role_code = 'turista' AND EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+      AND r.code IN ('afiliado', 'embajador')
+  ) THEN
+    RAISE EXCEPTION 'No puedes retirar Turista mientras la cuenta tenga Afiliado o Embajador';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_protected
+  ) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
+
+  IF p_role_code = 'super_admin'
+     AND EXISTS (SELECT 1 FROM public.turismo_profiles WHERE id = p_user_id AND is_active) THEN
+    SELECT COUNT(DISTINCT ur.user_id) INTO active_super_admin_count
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id AND r.is_active
+    JOIN public.turismo_profiles p ON p.id = ur.user_id AND p.is_active
+    WHERE ur.is_active AND r.code = 'super_admin';
+    IF active_super_admin_count <= 1 THEN
+      RAISE EXCEPTION 'La plataforma debe conservar al menos un Super Admin activo';
+    END IF;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND ur.is_primary
+      AND r.is_active AND NOT r.is_system
+      AND r.code <> 'usuario'
+      AND public.turismo_role_has_dashboard(r.code)
+      AND (
+        r.code NOT IN ('afiliado', 'embajador')
+        OR EXISTS (
+          SELECT 1
+          FROM public.turismo_user_roles tourist_assignment
+          JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+          WHERE tourist_assignment.user_id = ur.user_id
+            AND tourist_assignment.is_active
+            AND tourist_role.is_active
+            AND tourist_role.code = 'turista'
+            AND NOT tourist_role.is_system
+        )
+      )
+      AND ur.role_id <> target_id
+  ) INTO valid_primary_exists;
+
+  IF was_primary OR NOT valid_primary_exists THEN
+    SELECT ur.role_id INTO fallback_role_id
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND ur.role_id <> target_id
+      AND r.is_active AND NOT r.is_system AND r.code <> 'usuario'
+      AND public.turismo_role_has_dashboard(r.code)
+      AND (
+        r.code NOT IN ('afiliado', 'embajador')
+        OR EXISTS (
+          SELECT 1
+          FROM public.turismo_user_roles tourist_assignment
+          JOIN public.turismo_roles tourist_role ON tourist_role.id = tourist_assignment.role_id
+          WHERE tourist_assignment.user_id = ur.user_id
+            AND tourist_assignment.is_active
+            AND tourist_role.is_active
+            AND tourist_role.code = 'turista'
+            AND NOT tourist_role.is_system
+        )
+      )
+    ORDER BY CASE WHEN r.code = 'turista' THEN 0 ELSE 1 END,
+             ur.assigned_at ASC, ur.role_id
+    LIMIT 1;
+  END IF;
+
+  UPDATE public.turismo_user_roles
+  SET is_active = FALSE, is_primary = FALSE
+  WHERE user_id = p_user_id AND role_id = target_id;
+
+  IF was_primary OR NOT valid_primary_exists THEN
+    UPDATE public.turismo_user_roles
+    SET is_primary = FALSE
+    WHERE user_id = p_user_id AND is_active AND is_primary;
+    IF fallback_role_id IS NOT NULL THEN
+      UPDATE public.turismo_user_roles
+      SET is_primary = TRUE
+      WHERE user_id = p_user_id AND role_id = fallback_role_id AND is_active;
+    END IF;
+  END IF;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_role_revoked', p_user_id::TEXT,
+    jsonb_build_object('role_code', p_role_code, 'was_primary', was_primary));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_primary_user_role(p_user_id UUID, p_role_code TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE target_role_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para cambiar el rol principal';
+  END IF;
+  IF p_role_code = 'usuario' OR NOT public.turismo_role_has_dashboard(p_role_code) THEN
+    RAISE EXCEPTION 'El rol no tiene un panel seleccionable como principal';
+  END IF;
+  IF p_role_code IN ('afiliado', 'embajador') AND NOT EXISTS (
+    SELECT 1
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active
+      AND r.code = 'turista' AND NOT r.is_system
+  ) THEN
+    RAISE EXCEPTION 'Afiliado y Embajador requieren que la cuenta tenga también el rol Turista';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_system
+  ) THEN RAISE EXCEPTION 'Las identidades de sistema no tienen roles humanos principales'; END IF;
+  IF NOT public.turismo_is_super_admin() AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_protected
+  ) THEN RAISE EXCEPTION 'El usuario tiene un rol protegido'; END IF;
+
+  SELECT r.id INTO target_role_id
+  FROM public.turismo_user_roles ur
+  JOIN public.turismo_roles r ON r.id = ur.role_id
+  WHERE ur.user_id = p_user_id AND ur.is_active
+    AND r.is_active AND NOT r.is_system AND r.code = p_role_code;
+  IF target_role_id IS NULL THEN
+    RAISE EXCEPTION 'El rol no está asignado activamente o no tiene un panel';
+  END IF;
+
+  UPDATE public.turismo_user_roles SET is_primary = FALSE
+  WHERE user_id = p_user_id AND is_active;
+  UPDATE public.turismo_user_roles SET is_primary = TRUE
+  WHERE user_id = p_user_id AND role_id = target_role_id AND is_active;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_primary_role_changed', p_user_id::TEXT,
+    jsonb_build_object('role_code', p_role_code));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_role_permissions(p_role_code TEXT, p_permission_codes TEXT[])
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE role_row public.turismo_roles%ROWTYPE; caller_is_super BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('roles:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso para gestionar permisos';
+  END IF;
+  SELECT * INTO role_row FROM public.turismo_roles WHERE code = p_role_code;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Rol no encontrado'; END IF;
+  IF p_role_code = 'usuario' THEN
+    RAISE EXCEPTION 'El rol Usuario es legado y no admite permisos operativos';
+  END IF;
+  IF role_row.is_system THEN RAISE EXCEPTION 'Rol de sistema'; END IF;
+  caller_is_super := public.turismo_is_super_admin();
+  IF role_row.is_protected AND NOT caller_is_super THEN RAISE EXCEPTION 'Rol protegido'; END IF;
+  IF p_role_code = 'super_admin' THEN RAISE EXCEPTION 'Los permisos de Super Admin son inmutables'; END IF;
+  IF EXISTS (SELECT 1 FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code) WHERE x.code = '*') THEN
+    RAISE EXCEPTION 'El permiso * está reservado para super_admin';
+  END IF;
+  IF NOT caller_is_super AND EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+    WHERE x.code NOT IN (
+      'platform:read','content:moderate','content:approve','content:reject',
+      'provider:catalog_manage','provider:offers_manage','provider:bookings_view',
+      'provider:finances_view','tourist:book','tourist:review','tourist:profile',
+      'support:tickets_manage','support:refund_issue','bi:analytics_read',
+      'bi:reports_export','ambassador:referral_manage','ambassador:commissions_view'
+    )
+  ) THEN RAISE EXCEPTION 'El permiso no está permitido para un administrador'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+    WHERE NOT EXISTS (SELECT 1 FROM public.turismo_permissions p WHERE p.code = x.code)
+  ) THEN RAISE EXCEPTION 'Permiso inexistente'; END IF;
+
+  DELETE FROM public.turismo_role_permissions WHERE role_id = role_row.id;
+  INSERT INTO public.turismo_role_permissions(role_id, permission_code)
+  SELECT role_row.id, code
+  FROM unnest(COALESCE(p_permission_codes, ARRAY[]::TEXT[])) x(code)
+  ON CONFLICT DO NOTHING;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'role_permissions_changed', p_role_code,
+    jsonb_build_object('role_code', p_role_code, 'permission_codes', COALESCE(p_permission_codes, ARRAY[]::TEXT[])));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_user_status(p_user_id UUID, p_is_active BOOLEAN)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE active_super_admin_count INTEGER;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_current_user_has_permission('users:manage') THEN
+    RAISE EXCEPTION 'No tienes permiso';
+  END IF;
+  IF p_user_id = auth.uid() THEN RAISE EXCEPTION 'No puedes cambiar tu propio estado'; END IF;
+  IF NOT public.turismo_is_super_admin() AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_protected
+  ) THEN RAISE EXCEPTION 'Usuario protegido'; END IF;
+
+  IF NOT p_is_active AND EXISTS (
+    SELECT 1 FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id
+    JOIN public.turismo_profiles target_profile ON target_profile.id = ur.user_id AND target_profile.is_active
+    WHERE ur.user_id = p_user_id AND ur.is_active AND r.is_active AND r.code = 'super_admin'
+  ) THEN
+    SELECT COUNT(DISTINCT ur.user_id) INTO active_super_admin_count
+    FROM public.turismo_user_roles ur
+    JOIN public.turismo_roles r ON r.id = ur.role_id AND r.is_active
+    JOIN public.turismo_profiles p ON p.id = ur.user_id AND p.is_active
+    WHERE ur.is_active AND r.code = 'super_admin';
+    IF active_super_admin_count <= 1 THEN
+      RAISE EXCEPTION 'La plataforma debe conservar al menos un Super Admin activo';
+    END IF;
+  END IF;
+
+  UPDATE public.turismo_profiles SET is_active = p_is_active, updated_at = NOW()
+  WHERE id = p_user_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Usuario no encontrado'; END IF;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'user_status_changed', p_user_id::TEXT,
+    jsonb_build_object('is_active', p_is_active));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_create_role(
+  p_code TEXT, p_name TEXT, p_description TEXT, p_badge_color TEXT, p_folder_name TEXT
+)
+RETURNS public.turismo_roles
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  role_row public.turismo_roles%ROWTYPE;
+  clean_code TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Autenticación requerida'; END IF;
+  IF NOT public.turismo_is_super_admin() THEN RAISE EXCEPTION 'Solo Super Admin puede crear roles'; END IF;
+
+  clean_code := TRIM(BOTH '_' FROM TRIM(REGEXP_REPLACE(LOWER(p_code), '[^a-z0-9]+', '_', 'g')));
+  IF clean_code = '' THEN RAISE EXCEPTION 'Código de rol inválido'; END IF;
+  IF EXISTS (SELECT 1 FROM public.turismo_roles WHERE code = clean_code) THEN
+    RAISE EXCEPTION 'El código de rol ya existe';
+  END IF;
+
+  INSERT INTO public.turismo_roles(
+    code, name, description, badge_color, folder_name, is_active, is_protected, is_system
+  )
+  VALUES (
+    clean_code,
+    TRIM(p_name),
+    NULLIF(TRIM(p_description), ''),
+    COALESCE(NULLIF(p_badge_color, ''), 'bg-slate-500/10 text-slate-300 border-slate-500/20'),
+    COALESCE(NULLIF(p_folder_name, ''), clean_code),
+    TRUE, FALSE, FALSE
+  )
+  RETURNING * INTO role_row;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (
+    auth.uid(), 'role_created', role_row.code,
+    jsonb_build_object('name', role_row.name, 'is_protected', FALSE, 'is_system', FALSE)
+  );
+  RETURN role_row;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_set_role_status(p_role_code TEXT, p_is_active BOOLEAN)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE target_role_id UUID; target_user_id UUID; fallback_role_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active() THEN
+    RAISE EXCEPTION 'Autenticación requerida o cuenta inactiva';
+  END IF;
+  IF NOT public.turismo_is_super_admin() THEN RAISE EXCEPTION 'Solo Super Admin puede activar roles'; END IF;
+  SELECT id INTO target_role_id FROM public.turismo_roles WHERE code = p_role_code;
+  IF target_role_id IS NULL THEN RAISE EXCEPTION 'Rol no encontrado'; END IF;
+  IF p_role_code = 'super_admin' AND NOT p_is_active THEN
+    RAISE EXCEPTION 'El rol Super Admin no puede desactivarse';
+  END IF;
+  IF p_role_code = 'turista' AND NOT p_is_active THEN
+    RAISE EXCEPTION 'El rol Turista no puede desactivarse mientras sea el rol de registro público';
+  END IF;
+
+  UPDATE public.turismo_roles SET is_active = p_is_active, updated_at = NOW()
+  WHERE id = target_role_id;
+  IF NOT p_is_active THEN
+    FOR target_user_id IN
+      SELECT DISTINCT ur.user_id FROM public.turismo_user_roles ur
+      WHERE ur.role_id = target_role_id AND ur.is_active AND ur.is_primary
+    LOOP
+      UPDATE public.turismo_user_roles SET is_primary = FALSE
+      WHERE user_id = target_user_id AND is_active;
+      SELECT ur.role_id INTO fallback_role_id
+      FROM public.turismo_user_roles ur
+      JOIN public.turismo_roles r ON r.id = ur.role_id
+      WHERE ur.user_id = target_user_id AND ur.is_active AND r.is_active
+        AND NOT r.is_system AND r.code <> 'usuario'
+        AND public.turismo_role_has_dashboard(r.code)
+      ORDER BY CASE WHEN r.code = 'turista' THEN 0 ELSE 1 END,
+               ur.assigned_at ASC, ur.role_id
+      LIMIT 1;
+      IF fallback_role_id IS NOT NULL THEN
+        UPDATE public.turismo_user_roles SET is_primary = TRUE
+        WHERE user_id = target_user_id AND role_id = fallback_role_id AND is_active;
+      END IF;
+    END LOOP;
+  END IF;
+
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'role_status_changed', p_role_code,
+    jsonb_build_object('role_code', p_role_code, 'is_active', p_is_active));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_user_is_growth_eligible(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.turismo_profiles p
+    WHERE p.id = p_user_id
+      AND p.is_active
+      AND EXISTS (
+        SELECT 1
+        FROM public.turismo_user_roles ur
+        JOIN public.turismo_roles r ON r.id = ur.role_id
+        WHERE ur.user_id = p.id AND ur.is_active AND r.is_active
+          AND r.code IN ('afiliado', 'embajador')
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM public.turismo_user_roles ur
+        JOIN public.turismo_roles r ON r.id = ur.role_id
+        WHERE ur.user_id = p.id AND ur.is_active AND r.is_active
+          AND r.code = 'turista'
+      )
+  );
+$$;
+REVOKE ALL ON FUNCTION public.turismo_user_is_growth_eligible(UUID) FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.turismo_register_referral_visit(
+  p_referral_code TEXT, p_visitor_token TEXT, p_landing_path TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE affiliate_id_value UUID;
+BEGIN
+  IF NOT public.turismo_feature_enabled('referrals_enabled')
+     OR public.turismo_maintenance_blocks()
+     OR NULLIF(TRIM(p_referral_code), '') IS NULL
+     OR NULLIF(TRIM(p_visitor_token), '') IS NULL THEN
+    RETURN FALSE;
+  END IF;
+  SELECT a.profile_id INTO affiliate_id_value
+  FROM public.turismo_affiliate_profiles a
+  WHERE LOWER(a.referral_code) = LOWER(TRIM(p_referral_code))
+    AND public.turismo_user_is_growth_eligible(a.profile_id)
+  LIMIT 1;
+  IF affiliate_id_value IS NULL THEN RETURN FALSE; END IF;
+  INSERT INTO public.turismo_referral_visits(affiliate_id, referral_code, visitor_token, landing_path)
+  VALUES (affiliate_id_value, TRIM(p_referral_code), TRIM(p_visitor_token), p_landing_path)
+  ON CONFLICT (affiliate_id, visitor_token) DO NOTHING;
+  RETURN TRUE;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_get_affiliate_dashboard()
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE affiliate_row public.turismo_affiliate_profiles%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_user_is_growth_eligible(auth.uid()) THEN
+    RAISE EXCEPTION 'El rol Afiliado/Embajador requiere también el rol Turista';
+  END IF;
+  SELECT * INTO affiliate_row
+  FROM public.turismo_affiliate_profiles WHERE profile_id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Perfil de afiliado no configurado'; END IF;
+  RETURN jsonb_build_object(
+    'referral_code', affiliate_row.referral_code,
+    'commission_rate', affiliate_row.commission_rate,
+    'total_earnings', COALESCE((SELECT SUM(amount) FROM public.turismo_affiliate_commissions WHERE affiliate_id = auth.uid() AND status IN ('earned','paid')), 0),
+    'unique_visits', (SELECT COUNT(*) FROM public.turismo_referral_visits WHERE affiliate_id = auth.uid()),
+    'referred_reservations', (SELECT COUNT(*) FROM public.turismo_reservations WHERE affiliate_id = auth.uid()),
+    'pending_commission', COALESCE((SELECT SUM(amount) FROM public.turismo_affiliate_commissions WHERE affiliate_id = auth.uid() AND status = 'pending'), 0),
+    'earned_commission', COALESCE((SELECT SUM(amount) FROM public.turismo_affiliate_commissions WHERE affiliate_id = auth.uid() AND status = 'earned'), 0),
+    'paid_commission', COALESCE((SELECT SUM(amount) FROM public.turismo_affiliate_commissions WHERE affiliate_id = auth.uid() AND status = 'paid'), 0),
+    'payout_method', affiliate_row.payout_method,
+    'recent_commissions', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'reservation_id', c.reservation_id, 'catalog_item_title', i.title,
+        'status', c.status, 'base_amount', c.base_amount,
+        'commission_amount', c.amount, 'created_at', c.created_at
+      ) ORDER BY c.created_at DESC)
+      FROM public.turismo_affiliate_commissions c
+      JOIN public.turismo_reservations r ON r.id = c.reservation_id
+      JOIN public.turismo_catalog_items i ON i.id = r.item_id
+      WHERE c.affiliate_id = auth.uid()
+      LIMIT 10
+    ), '[]'::jsonb)
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_update_own_affiliate_preferences(
+  p_payout_method TEXT, p_payout_account_info JSONB
+)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Autenticación requerida'; END IF;
+  IF NOT public.turismo_current_user_is_active() THEN RAISE EXCEPTION 'La cuenta está inactiva'; END IF;
+  IF NOT public.turismo_user_is_growth_eligible(auth.uid()) THEN
+    RAISE EXCEPTION 'El rol Afiliado/Embajador requiere también el rol Turista';
+  END IF;
+  IF p_payout_method IS NOT NULL
+     AND p_payout_method NOT IN ('nequi','daviplata','transferencia','yape','plin','cci') THEN
+    RAISE EXCEPTION 'Método de pago inválido';
+  END IF;
+  UPDATE public.turismo_affiliate_profiles
+  SET payout_method = p_payout_method,
+      payout_account_info = COALESCE(p_payout_account_info, payout_account_info),
+      updated_at = NOW()
+  WHERE profile_id = auth.uid();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_create_reservation(
+  p_item_id UUID,
+  p_reservation_date DATE,
+  p_end_date DATE,
+  p_guests INTEGER,
+  p_notes TEXT,
+  p_referral_code TEXT DEFAULT NULL,
+  p_promotion_code TEXT DEFAULT NULL
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  item_row public.turismo_catalog_items%ROWTYPE;
+  affiliate_row public.turismo_affiliate_profiles%ROWTYPE;
+  promotion_row public.turismo_promotions%ROWTYPE;
+  reservation_id UUID;
+  day_value DATE;
+  requested_end DATE;
+  explicit_schedule BOOLEAN;
+  availability_row public.turismo_catalog_availability%ROWTYPE;
+  existing_guests INTEGER;
+  day_count INTEGER;
+  available_count INTEGER;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:book') THEN
+    RAISE EXCEPTION 'No tienes permiso para reservar';
+  END IF;
+  IF NOT public.turismo_feature_enabled('reservations_enabled') THEN RAISE EXCEPTION 'Las reservas están deshabilitadas temporalmente'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF p_guests IS NULL OR p_guests < 1 OR p_reservation_date IS NULL OR p_reservation_date < CURRENT_DATE THEN RAISE EXCEPTION 'Datos de reserva inválidos'; END IF;
+
+  requested_end := COALESCE(p_end_date, p_reservation_date);
+  IF requested_end < p_reservation_date OR requested_end > p_reservation_date + 30 THEN RAISE EXCEPTION 'El rango de reserva no es válido'; END IF;
+  SELECT * INTO item_row FROM public.turismo_catalog_items WHERE id = p_item_id AND status = 'published' AND is_reservable = TRUE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'La oferta no está publicada o no acepta reservas'; END IF;
+
+  IF public.turismo_feature_enabled('referrals_enabled') AND NULLIF(TRIM(p_referral_code), '') IS NOT NULL THEN
+    SELECT a.* INTO affiliate_row
+    FROM public.turismo_affiliate_profiles a
+    JOIN public.turismo_profiles p ON p.id = a.profile_id AND p.is_active
+    JOIN public.turismo_user_roles ur ON ur.user_id = a.profile_id AND ur.is_active
+    JOIN public.turismo_roles r ON r.id = ur.role_id AND r.is_active AND r.code IN ('afiliado', 'embajador')
+    WHERE LOWER(a.referral_code) = LOWER(TRIM(p_referral_code)) AND a.profile_id <> auth.uid()
+      AND public.turismo_user_is_growth_eligible(a.profile_id)
+    LIMIT 1;
+  END IF;
+  IF public.turismo_feature_enabled('promotions_enabled') AND NULLIF(TRIM(p_promotion_code), '') IS NOT NULL THEN
+    SELECT * INTO promotion_row FROM public.turismo_promotions
+    WHERE item_id = p_item_id AND is_active AND NOW() BETWEEN starts_at AND ends_at
+      AND LOWER(code) = LOWER(TRIM(p_promotion_code)) LIMIT 1;
+    IF NOT FOUND THEN RAISE EXCEPTION 'El código de promoción no es válido o no está vigente'; END IF;
+  END IF;
+
+  SELECT EXISTS (SELECT 1 FROM public.turismo_catalog_availability WHERE item_id = p_item_id AND available_date >= CURRENT_DATE)
+  INTO explicit_schedule;
+  IF explicit_schedule THEN
+    SELECT COUNT(*)::INTEGER, COUNT(*) FILTER (WHERE is_available)::INTEGER
+    INTO day_count, available_count
+    FROM public.turismo_catalog_availability
+    WHERE item_id = p_item_id AND available_date BETWEEN p_reservation_date AND requested_end;
+    IF day_count <> (requested_end - p_reservation_date + 1) OR available_count <> day_count THEN
+      RAISE EXCEPTION 'La oferta no tiene disponibilidad para todas las fechas';
+    END IF;
+    PERFORM 1 FROM public.turismo_catalog_availability
+    WHERE item_id = p_item_id AND available_date BETWEEN p_reservation_date AND requested_end FOR UPDATE;
+    FOR day_value IN SELECT generate_series(p_reservation_date, requested_end, '1 day')::DATE LOOP
+      SELECT * INTO availability_row FROM public.turismo_catalog_availability
+      WHERE item_id = p_item_id AND available_date = day_value;
+      IF availability_row.capacity IS NOT NULL THEN
+        SELECT COALESCE(SUM(r.guests), 0)::INTEGER INTO existing_guests
+        FROM public.turismo_reservations r
+        WHERE r.item_id = p_item_id AND r.status IN ('requested', 'confirmed')
+          AND r.reservation_date <= day_value AND COALESCE(r.end_date, r.reservation_date) >= day_value;
+        IF existing_guests + p_guests > availability_row.capacity THEN RAISE EXCEPTION 'La capacidad disponible se ha agotado'; END IF;
+      END IF;
+    END LOOP;
+  END IF;
+
+  INSERT INTO public.turismo_reservations(
+    item_id, tourist_id, provider_id, reservation_date, end_date, guests, notes, status,
+    currency, affiliate_id, referral_code, commission_rate_snapshot, promotion_id, promotion_code
+  )
+  VALUES (
+    p_item_id, auth.uid(), item_row.provider_id, p_reservation_date, p_end_date, p_guests,
+    p_notes, 'requested', COALESCE(item_row.currency, 'COP'), affiliate_row.profile_id,
+    CASE WHEN affiliate_row.profile_id IS NOT NULL THEN TRIM(p_referral_code) ELSE NULL END,
+    affiliate_row.commission_rate, promotion_row.id,
+    CASE WHEN promotion_row.id IS NOT NULL THEN promotion_row.code ELSE NULL END
+  ) RETURNING id INTO reservation_id;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'reservation_created', reservation_id::TEXT, jsonb_build_object('item_id', p_item_id, 'guests', p_guests));
+  RETURN reservation_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_cancel_reservation(p_reservation_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE affiliate_id_value UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:book') THEN
+    RAISE EXCEPTION 'No tienes permiso para cancelar reservas';
+  END IF;
+  UPDATE public.turismo_reservations
+  SET status = 'cancelled', updated_at = NOW()
+  WHERE id = p_reservation_id AND tourist_id = auth.uid() AND status IN ('requested', 'confirmed')
+  RETURNING affiliate_id INTO affiliate_id_value;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Reserva no encontrada o no se puede cancelar'; END IF;
+  IF affiliate_id_value IS NOT NULL THEN
+    UPDATE public.turismo_affiliate_commissions SET status = 'void' WHERE reservation_id = p_reservation_id;
+    PERFORM public.turismo_recalculate_affiliate_earnings(affiliate_id_value);
+  END IF;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'reservation_cancelled', p_reservation_id::TEXT, '{}'::JSONB);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_create_review(p_reservation_id UUID, p_rating INTEGER, p_comment TEXT)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE reservation_row public.turismo_reservations%ROWTYPE; review_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:review') THEN
+    RAISE EXCEPTION 'No tienes permiso para reseñar';
+  END IF;
+  IF NOT public.turismo_feature_enabled('reviews_enabled') THEN RAISE EXCEPTION 'Las reseñas están deshabilitadas temporalmente'; END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  SELECT * INTO reservation_row FROM public.turismo_reservations
+  WHERE id = p_reservation_id AND tourist_id = auth.uid() AND status = 'completed';
+  IF NOT FOUND THEN RAISE EXCEPTION 'Solo puedes reseñar reservas completadas propias'; END IF;
+  IF p_rating NOT BETWEEN 1 AND 5 OR EXISTS (SELECT 1 FROM public.turismo_reviews WHERE reservation_id = p_reservation_id) THEN
+    RAISE EXCEPTION 'La reseña no es válida o ya existe';
+  END IF;
+  INSERT INTO public.turismo_reviews(item_id, tourist_id, reservation_id, rating, comment, status)
+  VALUES (reservation_row.item_id, auth.uid(), p_reservation_id, p_rating, NULLIF(TRIM(p_comment), ''), 'pending')
+  RETURNING id INTO review_id;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'review_created', review_id::TEXT,
+    jsonb_build_object('item_id', reservation_row.item_id, 'rating', p_rating));
+  RETURN review_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_update_tourist_preferences(p_preferences TEXT[])
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE cleaned TEXT[];
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:profile') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede actualizar sus preferencias';
+  END IF;
+  IF COALESCE(array_length(p_preferences, 1), 0) > 9 THEN RAISE EXCEPTION 'Puedes seleccionar máximo 9 intereses'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_preferences, ARRAY[]::TEXT[])) value
+    WHERE LOWER(TRIM(value)) NOT IN ('naturaleza', 'aventura', 'gastronomia', 'cultura', 'descanso', 'familia', 'artesania', 'eventos', 'alojamiento')
+  ) THEN RAISE EXCEPTION 'Una preferencia no pertenece al vocabulario permitido'; END IF;
+  SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::TEXT[]) INTO cleaned
+  FROM (
+    SELECT DISTINCT LOWER(TRIM(value)) AS value
+    FROM unnest(COALESCE(p_preferences, ARRAY[]::TEXT[])) value
+    WHERE NULLIF(TRIM(value), '') IS NOT NULL
+  ) values_table;
+  UPDATE public.turismo_tourist_profiles SET travel_preferences = cleaned, updated_at = NOW()
+  WHERE profile_id = auth.uid();
+  IF NOT FOUND THEN
+    INSERT INTO public.turismo_tourist_profiles(profile_id, travel_preferences) VALUES (auth.uid(), cleaned);
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_save_itinerary(
+  p_name TEXT, p_days INTEGER, p_interests TEXT[], p_budget_level TEXT, p_items JSONB
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE itinerary_id UUID; item_record RECORD; clean_interests TEXT[];
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:profile') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede guardar itinerarios';
+  END IF;
+  IF NULLIF(TRIM(p_name), '') IS NULL THEN RAISE EXCEPTION 'El nombre del itinerario es obligatorio'; END IF;
+  IF p_days IS NULL OR p_days NOT BETWEEN 1 AND 7 THEN RAISE EXCEPTION 'El itinerario debe tener entre 1 y 7 días'; END IF;
+  IF p_budget_level NOT IN ('economico', 'moderado', 'premium', 'flexible') THEN RAISE EXCEPTION 'Presupuesto inválido'; END IF;
+  IF COALESCE(array_length(p_interests, 1), 0) > 9 THEN RAISE EXCEPTION 'Puedes seleccionar máximo 9 intereses'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(p_interests, ARRAY[]::TEXT[])) value
+    WHERE LOWER(TRIM(value)) NOT IN ('naturaleza', 'aventura', 'gastronomia', 'cultura', 'descanso', 'familia', 'artesania', 'eventos', 'alojamiento')
+  ) THEN RAISE EXCEPTION 'Un interés no es válido'; END IF;
+  SELECT COALESCE(array_agg(value ORDER BY value), ARRAY[]::TEXT[]) INTO clean_interests
+  FROM (
+    SELECT DISTINCT LOWER(TRIM(value)) AS value
+    FROM unnest(COALESCE(p_interests, ARRAY[]::TEXT[])) value
+    WHERE NULLIF(TRIM(value), '') IS NOT NULL
+  ) values_table;
+  IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN RAISE EXCEPTION 'Los elementos del itinerario deben ser un arreglo'; END IF;
+  FOR item_record IN SELECT * FROM jsonb_to_recordset(p_items) AS x(catalog_item_id UUID, day_number INTEGER, slot TEXT, position INTEGER) LOOP
+    IF item_record.catalog_item_id IS NULL OR item_record.day_number IS NULL
+       OR item_record.day_number NOT BETWEEN 1 AND p_days
+       OR item_record.slot NOT IN ('morning', 'midday', 'afternoon', 'evening')
+       OR COALESCE(item_record.position, 0) < 0 THEN
+      RAISE EXCEPTION 'Un elemento del itinerario tiene una estructura inválida';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.turismo_catalog_items WHERE id = item_record.catalog_item_id AND status = 'published') THEN
+      RAISE EXCEPTION 'Todos los elementos deben pertenecer al catálogo publicado';
+    END IF;
+  END LOOP;
+  INSERT INTO public.turismo_itineraries(tourist_id, name, days, interests, budget_level)
+  VALUES (auth.uid(), TRIM(p_name), p_days, clean_interests, p_budget_level) RETURNING id INTO itinerary_id;
+  INSERT INTO public.turismo_itinerary_items(itinerary_id, catalog_item_id, day_number, slot, position)
+  SELECT itinerary_id, x.catalog_item_id, x.day_number, x.slot, COALESCE(x.position, 0)
+  FROM jsonb_to_recordset(p_items) AS x(catalog_item_id UUID, day_number INTEGER, slot TEXT, position INTEGER);
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'itinerary_saved', itinerary_id::TEXT, jsonb_build_object('days', p_days, 'items', jsonb_array_length(p_items)));
+  RETURN itinerary_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_delete_itinerary(p_itinerary_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:profile') THEN
+    RAISE EXCEPTION 'Solo un turista activo puede eliminar itinerarios';
+  END IF;
+  DELETE FROM public.turismo_itineraries WHERE id = p_itinerary_id AND tourist_id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Itinerario no encontrado o no te pertenece'; END IF;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'itinerary_deleted', p_itinerary_id::TEXT, '{}'::JSONB);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.turismo_declare_external_payment(
+  p_reservation_id UUID, p_method TEXT, p_external_reference TEXT DEFAULT NULL, p_notes TEXT DEFAULT NULL
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE reservation_row public.turismo_reservations%ROWTYPE; payment_id UUID;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.turismo_current_user_is_active()
+     OR NOT public.turismo_current_user_has_role('turista')
+     OR NOT public.turismo_current_user_has_permission('tourist:book') THEN
+    RAISE EXCEPTION 'Solo un turista con permiso de reserva puede registrar pagos';
+  END IF;
+  IF public.turismo_maintenance_blocks() THEN RAISE EXCEPTION 'La plataforma está en mantenimiento'; END IF;
+  IF p_method NOT IN ('nequi', 'daviplata', 'bank_transfer', 'cash_provider')
+     OR (p_method = 'bank_transfer' AND NULLIF(TRIM(p_external_reference), '') IS NULL) THEN
+    RAISE EXCEPTION 'Método o referencia inválida';
+  END IF;
+  SELECT * INTO reservation_row FROM public.turismo_reservations
+  WHERE id = p_reservation_id AND tourist_id = auth.uid() AND status IN ('confirmed', 'completed');
+  IF NOT FOUND OR reservation_row.quoted_amount IS NULL OR reservation_row.quoted_amount <= 0 THEN
+    RAISE EXCEPTION 'Solo puedes registrar pagos de reservas confirmadas o completadas con cotización';
+  END IF;
+  INSERT INTO public.turismo_payment_records(
+    reservation_id, tourist_id, provider_id, amount, currency, method, external_reference, notes
+  )
+  VALUES (
+    p_reservation_id, auth.uid(), reservation_row.provider_id, reservation_row.quoted_amount,
+    reservation_row.currency, p_method, NULLIF(TRIM(p_external_reference), ''), NULLIF(TRIM(p_notes), '')
+  ) RETURNING id INTO payment_id;
+  INSERT INTO public.turismo_audit_logs(actor_id, action, entity_target, details)
+  VALUES (auth.uid(), 'external_payment_declared', payment_id::TEXT, jsonb_build_object('reservation_id', p_reservation_id, 'method', p_method));
+  RETURN payment_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.turismo_role_has_dashboard(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.turismo_handle_new_user() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.turismo_assign_user_role(UUID, TEXT, BOOLEAN) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_revoke_user_role(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_set_primary_user_role(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_set_role_permissions(TEXT, TEXT[]) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_set_user_status(UUID, BOOLEAN) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_create_role(TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_set_role_status(TEXT, BOOLEAN) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.turismo_assign_user_role(UUID, TEXT, BOOLEAN),
+  public.turismo_revoke_user_role(UUID, TEXT),
+  public.turismo_set_primary_user_role(UUID, TEXT),
+  public.turismo_set_role_permissions(TEXT, TEXT[]),
+  public.turismo_set_user_status(UUID, BOOLEAN),
+  public.turismo_create_role(TEXT, TEXT, TEXT, TEXT, TEXT),
+  public.turismo_set_role_status(TEXT, BOOLEAN) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.turismo_create_reservation(UUID, DATE, DATE, INTEGER, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_cancel_reservation(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_create_review(UUID, INTEGER, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_update_tourist_preferences(TEXT[]) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_save_itinerary(TEXT, INTEGER, TEXT[], TEXT, JSONB) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_delete_itinerary(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.turismo_declare_external_payment(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.turismo_create_reservation(UUID, DATE, DATE, INTEGER, TEXT, TEXT, TEXT),
+  public.turismo_cancel_reservation(UUID),
+  public.turismo_create_review(UUID, INTEGER, TEXT),
+  public.turismo_update_tourist_preferences(TEXT[]),
+  public.turismo_save_itinerary(TEXT, INTEGER, TEXT[], TEXT, JSONB),
+  public.turismo_delete_itinerary(UUID),
+  public.turismo_declare_external_payment(UUID, TEXT, TEXT, TEXT) TO authenticated;
+
+INSERT INTO public.turismo_schema_version(version, migration_name)
+VALUES (16, '16_correct_account_role_semantics.sql')
+ON CONFLICT (version) DO UPDATE SET migration_name = EXCLUDED.migration_name;
+
+COMMIT;
