@@ -5,6 +5,7 @@ import { ROLE_METADATA, type UserRole } from '../../types/auth.types';
 import { cancelAccountDeletion, downloadMyDataJson, getMyDeletionRequest, requestAccountDeletion } from '../../services/privacyService';
 import type { AccountDeletionRequest } from '../../types/privacy.types';
 import { getUserFullRoleProfile, updateUserRoleProfile } from '../../services/profileService';
+import { isDashboardRole } from '../../utils/roleRouting';
 import WorkspaceSection from '../workspace/WorkspaceSection';
 import {
   User,
@@ -17,6 +18,12 @@ import {
   Lock,
   Sparkles
 } from 'lucide-react';
+
+const neutralRoleMeta = {
+  label: 'Cuenta',
+  description: 'Perfil de cuenta sin persona operativa asignada.',
+  badgeColor: 'bg-slate-500/10 text-slate-300 border-slate-500/20',
+};
 
 export const ProfileManagementView: React.FC = () => {
   const { user, profile, fetchProfile, activeRole } = useAuthStore();
@@ -83,15 +90,24 @@ export const ProfileManagementView: React.FC = () => {
   const [referralCode, setReferralCode] = useState('');
   const [payoutMethod, setPayoutMethod] = useState<'nequi' | 'daviplata' | 'transferencia' | 'yape' | 'plin' | 'cci'>('transferencia');
 
-  const currentRole: UserRole = activeRole || (profile?.roles.find((role) => role.is_primary)?.code as UserRole) || 'turista';
-  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.turista;
-  const specializedReadOnly = ['moderador', 'auditor', 'soporte', 'analista_datos', 'desarrollador', 'funcionario_mincit', 'camara_comercio', 'servicios_ia'].includes(currentRole);
+  const routedRoles = profile?.roles.filter(
+    (role) => role.is_active && !role.is_system && isDashboardRole(role.code),
+  ) || [];
+  const activeRoutedRole = routedRoles.find((role) => role.code === activeRole);
+  const primaryRoutedRole = routedRoles.find((role) => role.is_primary);
+  const currentRole = (activeRoutedRole || primaryRoutedRole || routedRoles[0])?.code as UserRole | undefined;
+  const roleMeta = currentRole ? ROLE_METADATA[currentRole] : neutralRoleMeta;
+  const specializedReadOnly = currentRole !== undefined
+    && ['moderador', 'auditor', 'soporte', 'analista_datos', 'desarrollador', 'funcionario_mincit', 'camara_comercio', 'servicios_ia'].includes(currentRole);
 
   const loadProfileData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
-    const fullProfile = await getUserFullRoleProfile(user.id, currentRole);
+    const fullProfile = currentRole ? await getUserFullRoleProfile(user.id, currentRole) : null;
     const activeData = fullProfile || profile;
 
     if (activeData) {
@@ -167,7 +183,7 @@ export const ProfileManagementView: React.FC = () => {
     // Preparar objeto de campos específicos según el rol
     const specificFields: Record<string, unknown> = {};
 
-    if (currentRole === 'turista' || currentRole === 'usuario') {
+    if (currentRole === 'turista') {
       specificFields.country_of_origin = countryOfOrigin;
       specificFields.nationality = nationality;
       specificFields.preferred_language = preferredLang;
@@ -209,7 +225,7 @@ export const ProfileManagementView: React.FC = () => {
 
     const res = await updateUserRoleProfile(
       user.id,
-      currentRole,
+      currentRole || null,
       {
         full_name: fullName,
         phone,
@@ -265,7 +281,7 @@ export const ProfileManagementView: React.FC = () => {
         </div>
       </div>
 
-      <WorkspaceSection title="Contexto de cuenta" description="Tu cuenta puede tener más de un rol; el formulario se adapta al panel activo."><div className="flex flex-wrap gap-1.5">{profile?.roles.filter((role) => role.is_active).map((role) => <span key={role.id} className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${role.badge_color}`}>{role.name}{role.code === currentRole ? ' · Activo' : ''}</span>)}</div></WorkspaceSection>
+      <WorkspaceSection title="Contexto de cuenta" description={currentRole ? 'Tu cuenta puede tener m\u00e1s de un rol; el formulario se adapta al panel activo.' : 'No hay un panel operativo asignado; aqu\u00ed se muestran los datos generales de la cuenta.'}><div className="flex flex-wrap gap-1.5">{profile?.roles.filter((role) => role.is_active && role.code !== 'usuario').map((role) => <span key={role.id} className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${role.badge_color}`}>{role.name}{role.code === currentRole ? ' · Activo' : ''}</span>)}</div></WorkspaceSection>
 
       {/* NOTIFICACIÓN FLASH */}
       {statusMessage && (
@@ -388,7 +404,7 @@ export const ProfileManagementView: React.FC = () => {
           </h3>
 
           {/* DERECHO AUTOGESTIÓN TURISTA */}
-          {(currentRole === 'turista' || currentRole === 'usuario') && (
+          {currentRole === 'turista' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label htmlFor="profile-country" className="block text-xs font-semibold text-[var(--text-secondary)]">País de Origen</label>

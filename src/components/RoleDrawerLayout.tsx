@@ -30,6 +30,12 @@ interface RoleDrawerLayoutProps {
 const FOCUSABLE_SELECTOR =
   'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])';
 
+const neutralRoleMeta = {
+  label: 'Cuenta',
+  description: 'Cuenta sin un panel operativo disponible.',
+  badgeColor: 'border-slate-500/20 bg-slate-500/10 text-slate-300',
+};
+
 export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const { user, profile, logout, activeRole } = useAuthStore();
@@ -39,12 +45,15 @@ export const RoleDrawerLayout: React.FC<RoleDrawerLayoutProps> = ({ children }) 
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  const currentRole: UserRole =
-    activeRole && isDashboardRole(activeRole)
-      ? activeRole
-      : (profile?.roles.find((role) => role.is_primary && isDashboardRole(role.code))?.code as UserRole ||
-        'turista');
-  const roleMeta = ROLE_METADATA[currentRole] || ROLE_METADATA.turista;
+  const routedRoles = profile?.roles.filter(
+    (role) => role.is_active && !role.is_system && isDashboardRole(role.code),
+  ) || [];
+  const currentRole = (
+    routedRoles.find((role) => role.code === activeRole)
+    || routedRoles.find((role) => role.is_primary)
+    || routedRoles[0]
+  )?.code as UserRole | undefined;
+  const roleMeta = currentRole ? ROLE_METADATA[currentRole] : neutralRoleMeta;
   const isAdminOrSuperAdmin =
     currentRole === UserRoleEnum.ADMIN || currentRole === UserRoleEnum.SUPER_ADMIN;
 

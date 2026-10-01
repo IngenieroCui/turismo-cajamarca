@@ -7,7 +7,7 @@ ALTER TABLE public.turismo_roles ADD COLUMN IF NOT EXISTS is_system BOOLEAN NOT 
 
 INSERT INTO public.turismo_roles (code, name, description, badge_color, folder_name, is_protected, is_system)
 VALUES
- ('usuario','Usuario General','Rol base para usuarios de la plataforma.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
+  ('usuario','Usuario General','Usuario base de la plataforma. Puede acceder a su cuenta y recibir roles adicionales.','bg-slate-500/10 text-slate-300 border-slate-500/20','usuario',false,false),
  ('turista','Turista','Viajeros y consumidores finales de experiencias turísticas.','bg-blue-500/10 text-blue-400 border-blue-500/20','turista',false,false),
  ('prestador_turistico','Prestador Turístico','Empresas, guías, hoteles y operadores turísticos.','bg-emerald-500/10 text-emerald-400 border-emerald-500/20','prestador_turistico',false,false),
  ('admin','Administrador','Operación diaria de la plataforma y usuarios.','bg-purple-500/10 text-purple-400 border-purple-500/20','admin',true,false),
@@ -96,7 +96,7 @@ FROM (VALUES
  ('admin','platform:read'),('admin','platform:config'),('admin','users:manage'),('admin','roles:manage'),('admin','content:moderate'),('admin','content:approve'),('admin','content:reject'),('admin','support:tickets_manage'),
  ('moderador','content:moderate'),('moderador','content:approve'),('moderador','content:reject'),
  ('prestador_turistico','provider:catalog_manage'),('prestador_turistico','provider:offers_manage'),('prestador_turistico','provider:bookings_view'),('prestador_turistico','provider:finances_view'),
- ('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),('usuario','tourist:book'),('usuario','tourist:review'),('usuario','tourist:profile'),
+ ('turista','tourist:book'),('turista','tourist:review'),('turista','tourist:profile'),
  ('auditor','audit:logs_read'),('auditor','audit:blockchain_read'),('soporte','support:tickets_manage'),('soporte','support:refund_issue'),
  ('analista_datos','bi:analytics_read'),('analista_datos','bi:reports_export'),('desarrollador','devops:infra_manage'),
  ('servicios_ia','ai:recommendations_read'),('servicios_ia','ai:embeddings_write'),
@@ -238,18 +238,15 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $
 
 CREATE OR REPLACE FUNCTION public.turismo_handle_new_user() RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE turista_id UUID;
+DECLARE usuario_id UUID;
 BEGIN
   INSERT INTO public.turismo_profiles(id,email,full_name,phone,document_type,document_number,is_active,is_verified)
   VALUES (NEW.id,NEW.email,COALESCE(NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'name',split_part(NEW.email,'@',1)),NEW.raw_user_meta_data->>'phone',
     COALESCE((NEW.raw_user_meta_data->>'document_type')::public.turismo_document_type_enum,'DNI'),NEW.raw_user_meta_data->>'document_number',TRUE,FALSE)
   ON CONFLICT (id) DO UPDATE SET email=EXCLUDED.email,full_name=COALESCE(EXCLUDED.full_name,turismo_profiles.full_name),phone=COALESCE(EXCLUDED.phone,turismo_profiles.phone);
-  SELECT id INTO turista_id FROM public.turismo_roles WHERE code='turista' AND is_active;
-  IF turista_id IS NULL THEN RAISE EXCEPTION 'El rol turista no está configurado'; END IF;
-  INSERT INTO public.turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES (NEW.id,turista_id,TRUE,TRUE) ON CONFLICT (user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=TRUE;
-  INSERT INTO public.turismo_tourist_profiles(profile_id,country_of_origin,nationality,preferred_language,emergency_contact_name,emergency_contact_phone)
-  VALUES (NEW.id,COALESCE(NEW.raw_user_meta_data->>'country_of_origin','Colombia'),COALESCE(NEW.raw_user_meta_data->>'nationality','Colombiana'),COALESCE(NEW.raw_user_meta_data->>'preferred_language','es'),NEW.raw_user_meta_data->>'emergency_contact_name',NEW.raw_user_meta_data->>'emergency_contact_phone')
-  ON CONFLICT (profile_id) DO NOTHING;
+  SELECT id INTO usuario_id FROM public.turismo_roles WHERE code='usuario' AND is_active;
+  IF usuario_id IS NULL THEN RAISE EXCEPTION 'El rol base usuario no está configurado; no se puede crear la cuenta'; END IF;
+  INSERT INTO public.turismo_user_roles(user_id,role_id,is_active,is_primary) VALUES (NEW.id,usuario_id,TRUE,TRUE) ON CONFLICT (user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=TRUE;
   RETURN NEW;
 END; $$;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -278,7 +275,7 @@ BEGIN
   INSERT INTO turismo_user_roles(user_id,role_id,is_active,is_primary,assigned_by) VALUES(p_user_id,target_role.id,TRUE,(p_make_primary OR active_count=0),auth.uid())
   ON CONFLICT(user_id,role_id) DO UPDATE SET is_active=TRUE,is_primary=CASE WHEN p_make_primary OR active_count=0 THEN TRUE ELSE turismo_user_roles.is_primary END,assigned_by=auth.uid(),assigned_at=NOW();
 
-  IF p_role_code IN ('turista','usuario') THEN
+  IF p_role_code = 'turista' THEN
     INSERT INTO turismo_tourist_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;
   ELSIF p_role_code='moderador' THEN
     INSERT INTO turismo_moderator_profiles(profile_id) VALUES(p_user_id) ON CONFLICT(profile_id) DO NOTHING;

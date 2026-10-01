@@ -22,7 +22,7 @@ export type RoleProfileDetails = BaseProfileRow &
   };
 
 const extensionTable = (role: UserRole): string | null => {
-  if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) return 'turismo_tourist_profiles';
+  if (role === UserRoleEnum.TURISTA) return 'turismo_tourist_profiles';
   if (role === UserRoleEnum.PRESTADOR_TURISTICO) return 'turismo_provider_profiles';
   if (role === UserRoleEnum.MODERADOR) return 'turismo_moderator_profiles';
   if (role === UserRoleEnum.AUDITOR) return 'turismo_auditor_profiles';
@@ -102,7 +102,7 @@ export const getUserFullRoleProfile = async (userId: string, role: UserRole): Pr
 
 export const updateUserRoleProfile = async (
   userId: string,
-  role: UserRole,
+  role: UserRole | null,
   baseFields: {
     full_name?: string | null;
     phone?: string | null;
@@ -124,7 +124,7 @@ export const updateUserRoleProfile = async (
     });
     if (baseError) throw baseError;
 
-    if (role === UserRoleEnum.TURISTA || role === UserRoleEnum.USUARIO) {
+    if (role === UserRoleEnum.TURISTA) {
       const touristFields = ['country_of_origin', 'nationality', 'preferred_language', 'emergency_contact_name', 'emergency_contact_phone'] as const;
       const payload = Object.fromEntries(touristFields.filter((key) => specificFields[key] !== undefined).map((key) => [key, specificFields[key]]));
       if (Object.keys(payload).length) {

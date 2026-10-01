@@ -16,8 +16,15 @@ Para una base que ya contiene el esquema base, aplicar en este orden:
 4. `sql/11_experience_intelligence_engagement.sql`
 5. `sql/12_platform_functional_closure.sql`
 6. `sql/13_stabilization_data_integrity.sql`
+7. `sql/14_default_user_role_and_role_switching.sql`
+8. `sql/15_final_account_rbac_hardening.sql`
+9. `sql/16_correct_account_role_semantics.sql`
 
-Para una base vacía, aplicar únicamente `sql/00_master_schema_all_in_one.sql` como esquema inicial y luego seguir el procedimiento de despliegue acordado para el entorno. No crear migration 14 ni alterar el orden.
+Para una base vacía, aplicar únicamente `sql/00_master_schema_all_in_one.sql` como esquema inicial y luego seguir el procedimiento de despliegue acordado para el entorno. No aplicar las migraciones incrementales sobre el maestro.
+
+La migración 16 aún no se ha aplicado a la base de datos en vivo. Revisar el resultado en una base QA aislada antes de su ejecución en vivo; todos estos cambios pertenecen a la migración 16 existente y no requieren una migración 17.
+
+Antes de aplicar la migración 16, guardar los casos de prueba históricos definidos en `LIVE_QA_MATRIX.md` en la base aislada para comprobar su reconciliación. El registro público y la interfaz actuales no deben crear asignaciones `usuario`.
 
 ## STEP 3 — Verificación de SQL
 
@@ -47,7 +54,7 @@ Crear datos mínimos controlados:
 
 ## STEP 5 — Asignar roles
 
-Asignar roles mediante la aplicación o el flujo de Super Admin cuando la funcionalidad que se prueba es precisamente la asignación. No editar la base de datos para simular ese comportamiento. Para colaboradores, usar la pantalla de equipo del provider owner y registrar provider, member role, permisos y estado resultantes.
+Asignar roles mediante la aplicación o el flujo de Super Admin cuando la funcionalidad que se prueba es precisamente la asignación. Asignar Turista antes de Afiliado o Embajador. No editar la base de datos para simular ese comportamiento. Para colaboradores, usar la pantalla de equipo del provider owner y registrar provider, member role, permisos y estado resultantes.
 
 Para pruebas de seguridad negativas, el SQL/RPC directo sí puede utilizarse como intento autenticado; nunca como forma de preparar permisos positivos. Verificar que la sesión activa y el usuario objetivo sean los placeholders correctos antes de cada operación.
 
@@ -56,15 +63,16 @@ Para pruebas de seguridad negativas, el SQL/RPC directo sí puede utilizarse com
 Ejecutar los bloques en este orden:
 
 1. login, confirmación y logout;
-2. Tourist y Legacy Usuario;
-3. Provider Owner A/B;
-4. colaboradores y cambio de contexto;
-5. Moderator, Support, Auditor, Analyst y DevOps;
-6. MinCIT y Chamber;
-7. Affiliate y Ambassador;
-8. Admin y Super Admin;
-9. feature flags;
-10. multi-role y security negative tests.
+2. registro público Turista y perfil turístico;
+3. compatibilidad de migración 16 para asignaciones Usuario heredadas;
+4. Provider Owner A/B;
+5. colaboradores y cambio de contexto;
+6. Moderator, Support, Auditor, Analyst y DevOps;
+7. MinCIT y Chamber;
+8. Affiliate y Ambassador;
+9. Admin y Super Admin;
+10. feature flags
+11. multi-role y security negative tests.
 
 Para cada escenario comprobar UI, ruta directa, refresh de página y llamada de servidor cuando aplique. La UI escondida no demuestra autorización.
 

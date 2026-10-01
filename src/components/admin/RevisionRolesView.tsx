@@ -21,7 +21,6 @@ interface Props {
 }
 type FlashMessage = { type: "success" | "error"; text: string };
 const standardReviewRoles: UserRole[] = [
-  UserRoleEnum.USUARIO,
   UserRoleEnum.TURISTA,
   UserRoleEnum.PRESTADOR_TURISTICO,
   UserRoleEnum.MODERADOR,
@@ -41,7 +40,6 @@ const protectedHumanRoles: UserRole[] = [
 const detailFields: Partial<
   Record<UserRole, Array<[string, keyof RoleProfileDetails]>>
 > = {
-  usuario: [["Pais", "country_of_origin"]],
   turista: [["Pais", "country_of_origin"]],
   prestador_turistico: [
     ["NIT", "ruc"],
@@ -282,7 +280,7 @@ export const RevisionRolesView: React.FC<Props> = ({
                                   key={role.id}
                                   className={`px-2 py-1 rounded-lg border text-[10px] ${role.badge_color}`}
                                 >
-                                  {role.name}
+                                  {role.name}{role.is_primary ? " · Principal" : ""}
                                 </span>
                               ))}
                             </div>
