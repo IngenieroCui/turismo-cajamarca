@@ -22,7 +22,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, requiredP
       ? profile.roles.find((role) => role.is_active && !role.is_system && role.code === routeRole)
       : undefined;
     if (directRole) {
-      setActiveRole(directRole.code as UserRole);
+      if (activeRole !== directRole.code) {
+        setActiveRole(directRole.code as UserRole);
+      }
       return;
     }
 
@@ -33,7 +35,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, requiredP
       const matchingRole = profile.roles.find(
         (role) => role.is_active && !role.is_system && allowedRoles.includes(role.code as UserRole),
       );
-      if (matchingRole) setActiveRole(matchingRole.code as UserRole);
+      if (matchingRole && activeRole !== matchingRole.code) {
+        setActiveRole(matchingRole.code as UserRole);
+      }
     }
   }, [activeRole, allowedRoles, location.pathname, profile, setActiveRole]);
   if (loading || !initialized) return <PageLoader />;

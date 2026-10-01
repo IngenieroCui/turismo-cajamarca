@@ -93,7 +93,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
 
   setActiveRole: (role) => {
-    const { profile, user } = get();
+    const { profile, user, activeRole } = get();
+    if (activeRole === role) return;
     const assigned = profile?.roles.find((item) => item.code === role);
     if (!user || !assigned || !isUsableDashboardRole(assigned) || !getRoleRoute(role)) return;
     persistActiveRole(user.id, role);
