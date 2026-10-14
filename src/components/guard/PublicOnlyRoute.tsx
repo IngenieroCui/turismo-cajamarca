@@ -7,7 +7,10 @@ import PageLoader from '../PageLoader';
 const PublicOnlyRoute: React.FC = () => {
   const { user, profile, loading, initialized } = useAuthStore();
   if (loading || !initialized) return <PageLoader />;
-  if (user && profile) return <Navigate to={getDefaultRoleRoute(profile.roles)} replace />;
+  if (user && profile) {
+    const route = getDefaultRoleRoute(profile.roles);
+    return <Navigate to={route === '/unauthorized' ? '/turista' : route} replace />;
+  }
   return <Outlet />;
 };
 

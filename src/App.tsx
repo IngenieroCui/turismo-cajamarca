@@ -64,7 +64,8 @@ export const App: React.FC = () => {
   useEffect(() => { resetProviderContext(); }, [user?.id, resetProviderContext]);
 
   // Determinar ruta de dashboard por defecto del usuario autenticado
-  const userDefaultRoute = getDefaultRoleRoute(profile?.roles);
+  const rawDefaultRoute = getDefaultRoleRoute(profile?.roles);
+  const userDefaultRoute = rawDefaultRoute && rawDefaultRoute !== '/unauthorized' ? rawDefaultRoute : '/turista';
 
   return (
     <BrowserRouter>
@@ -89,7 +90,7 @@ export const App: React.FC = () => {
         </Route>
 
         {/* MÓDULO TURISTA CON LAYOUT & DRAWER MENU */}
-        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRoleEnum.TURISTA, UserRoleEnum.USUARIO]} />}>
           <Route path="/turista" element={<TouristLayout />}>
             <Route index element={<TuristaPage />} />
             <Route path="perfil" element={<TouristProfilePage />} />

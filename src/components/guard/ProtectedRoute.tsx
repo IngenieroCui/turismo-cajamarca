@@ -5,22 +5,40 @@ import type { UserRole, Permission } from '../../types/auth.types';
 import PageLoader from '../PageLoader';
 import { usePlatformConfig } from '../../context/usePlatformConfig';
 import { ShieldAlert } from 'lucide-react';
-import { ROLE_ROUTES, isDashboardRole } from '../../utils/roleRouting';
+import { ROLE_ROUTES, isDashboardRole, getDefaultRoleRoute } from '../../utils/roleRouting';
 
-export interface ProtectedRouteProps { allowedRoles?: UserRole[]; requiredPermissions?: Permission[]; redirectTo?: string; unauthorizedRedirectTo?: string; children?: React.ReactNode; }
+export interface ProtectedRouteProps {
+  allowedRoles?: UserRole[];
+  requiredPermissions?: Permission[];
+  redirectTo?: string;
+  unauthorizedRedirectTo?: string;
+  children?: React.ReactNode;
+}
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, requiredPermissions, redirectTo = '/login', unauthorizedRedirectTo = '/unauthorized', children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  allowedRoles,
+  requiredPermissions,
+  redirectTo = '/login',
+  unauthorizedRedirectTo = '/unauthorized',
+  children,
+}) => {
   const { session, user, profile, loading, initialized, activeRole, hasRole, hasPermission, logout } = useAuthStore();
   const setActiveRole = useAuthStore((state) => state.setActiveRole);
   const supportContactEmail = usePlatformConfig((state) => state.supportContactEmail);
   const location = useLocation();
+
   useEffect(() => {
     if (!profile) return;
 
-    const routeRole = Object.entries(ROLE_ROUTES).find(([, route]) => route === location.pathname)?.[0];
+    // Detectar si la ruta actual coincide exactamente o es sub-ruta de un panel
+    const routeRole = Object.entries(ROLE_ROUTES).find(
+      ([, route]) => location.pathname === route || location.pathname.startsWith(`${route}/`),
+    )?.[0];
+
     const directRole = routeRole && isDashboardRole(routeRole)
-      ? profile.roles.find((role) => role.is_active && !role.is_system && role.code === routeRole)
+      ? profile.roles.find((role) => role.is_active && !role.is_system && (role.code === routeRole || (routeRole === 'turista' && role.code === 'usuario')))
       : undefined;
+
     if (directRole) {
       if (activeRole !== directRole.code) {
         setActiveRole(directRole.code as UserRole);
@@ -40,11 +58,51 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, requiredP
       }
     }
   }, [activeRole, allowedRoles, location.pathname, profile, setActiveRole]);
+
   if (loading || !initialized) return <PageLoader />;
   if (!session || !user) return <Navigate to={redirectTo} state={{ from: location }} replace />;
-  if (profile && !profile.is_active) return <div className="flex min-h-screen w-full items-center justify-center bg-slate-900 p-4 text-slate-100"><div className="w-full max-w-md space-y-4 rounded-2xl border border-red-800/40 bg-red-950/40 p-8 text-center shadow-2xl"><ShieldAlert className="mx-auto h-12 w-12 text-red-400" /><h2 className="text-xl font-bold text-red-200">Cuenta inactiva o suspendida</h2><p className="text-sm text-slate-300">Tu cuenta ha sido desactivada temporalmente por administración. Contacta al canal de soporte.</p>{supportContactEmail && <p className="text-sm text-slate-300">Soporte: <a className="text-teal-300 underline" href={`mailto:${supportContactEmail}`}>{supportContactEmail}</a></p>}<button type="button" onClick={() => void logout()} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white">Cerrar sesión</button></div></div>;
-  if (allowedRoles?.length && !hasRole(allowedRoles)) return <Navigate to={unauthorizedRedirectTo} state={{ from: location, reason: 'role' }} replace />;
-  if (requiredPermissions?.length && !requiredPermissions.every((permission) => hasPermission(permission))) return <Navigate to={unauthorizedRedirectTo} state={{ from: location, reason: 'permission' }} replace />;
+  if (!profile) return <PageLoader />;
+
+  if (!profile.is_active) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-slate-900 p-4 text-slate-100">
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-red-800/40 bg-red-950/40 p-8 text-center shadow-2xl">
+          <ShieldAlert className="mx-auto h-12 w-12 text-red-400" />
+          <h2 className="text-xl font-bold text-red-200">Cuenta inactiva o suspendida</h2>
+          <p className="text-sm text-slate-300">
+            Tu cuenta ha sido desactivada temporalmente por administración. Contacta al canal de soporte.
+          </p>
+          {supportContactEmail && (
+            <p className="text-sm text-slate-300">
+              Soporte: <a className="text-teal-300 underline" href={`mailto:${supportContactEmail}`}>{supportContactEmail}</a>
+            </p>
+          )}
+          <button type="button" onClick={() => void logout()} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white">
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirección inteligente al panel propio de acuerdo a su rol
+  const userHomeRoute = getDefaultRoleRoute(profile.roles);
+
+  if (allowedRoles?.length && !hasRole(allowedRoles)) {
+    // Si el usuario no tiene este rol, redirigir inmediatamente a su propio panel o ventana principal
+    const isCurrentRouteHome = location.pathname === userHomeRoute || location.pathname.startsWith(`${userHomeRoute}/`);
+    const destination = !isCurrentRouteHome ? userHomeRoute : unauthorizedRedirectTo;
+
+    return <Navigate to={destination} state={{ from: location, reason: 'role' }} replace />;
+  }
+
+  if (requiredPermissions?.length && !requiredPermissions.every((permission) => hasPermission(permission))) {
+    const isCurrentRouteHome = location.pathname === userHomeRoute;
+    const destination = !isCurrentRouteHome ? userHomeRoute : unauthorizedRedirectTo;
+
+    return <Navigate to={destination} state={{ from: location, reason: 'permission' }} replace />;
+  }
+
   return children ? <>{children}</> : <Outlet />;
 };
 

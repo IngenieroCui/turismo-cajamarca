@@ -145,11 +145,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (tourist) touristExtension = tourist;
       }
 
-      const userProfile: UserProfile = { ...data, roles, permissions, ...touristExtension } as UserProfile;
-      const storedRole = readStoredActiveRole(userId, roles);
-      const primary = roles.find((role) => isUsableDashboardRole(role) && role.is_primary);
-      const firstKnown = roles.find(isUsableDashboardRole);
-      const resolvedRole = storedRole || primary?.code || firstKnown?.code || null;
+      // Si la cuenta no tiene roles registrados en DB aún, aseguramos el rol base de Turista
+      const effectiveRoles: AssignedRole[] = roles.length > 0 ? roles : [
+        {
+          id: 'default-turista',
+          code: UserRoleEnum.TURISTA,
+          name: 'Turista',
+          description: 'Viajero y consumidor final de experiencias turísticas.',
+          badge_color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+          folder_name: 'turista',
+          is_active: true,
+          is_protected: false,
+          is_system: false,
+          is_primary: true,
+        },
+      ];
+
+      const userProfile: UserProfile = { ...data, roles: effectiveRoles, permissions, ...touristExtension } as UserProfile;
+      const storedRole = readStoredActiveRole(userId, effectiveRoles);
+      const primary = effectiveRoles.find((role) => isUsableDashboardRole(role) && role.is_primary);
+      const firstKnown = effectiveRoles.find(isUsableDashboardRole);
+      const resolvedRole = storedRole || primary?.code || firstKnown?.code || UserRoleEnum.TURISTA;
       if (resolvedRole) persistActiveRole(userId, resolvedRole);
       else clearStoredActiveRole();
       set({ profile: userProfile, activeRole: resolvedRole as UserRole | null });
@@ -304,6 +320,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const profile = get().profile;
     if (!profile || !profile.is_active) return false;
     const requested = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
+    // Si la ruta permite TURISTA o USUARIO, cualquier cuenta activa registrada tiene acceso al portal de turista
+    if (requested.includes(UserRoleEnum.TURISTA) || requested.includes(UserRoleEnum.USUARIO)) {
+      if (
+        profile.roles.length === 0 ||
+        profile.roles.some((role) => (role.code === UserRoleEnum.TURISTA || role.code === UserRoleEnum.USUARIO) && role.is_active)
+      ) {
+        return true;
+      }
+    }
+
     return profile.roles.some(
       (role) => role.is_active && !role.is_system && requested.includes(role.code as UserRole),
     );

@@ -38,7 +38,13 @@ export const Login: React.FC = () => {
     if (res.success) {
       const currentProfile = res.profile || useAuthStore.getState().profile;
       const defaultRolePath = getDefaultRoleRoute(currentProfile?.roles);
-      const targetPath = from && from.startsWith('/') && !from.startsWith('/login') && !from.startsWith('/signup') ? from : defaultRolePath;
+      const targetPath = from
+        && from.startsWith('/')
+        && !from.startsWith('/login')
+        && !from.startsWith('/signup')
+        && !from.startsWith('/unauthorized')
+        ? from
+        : defaultRolePath;
       navigate(targetPath, { replace: true });
     }
   };

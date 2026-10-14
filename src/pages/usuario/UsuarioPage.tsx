@@ -2,22 +2,18 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../context/useAuthStore';
 import { getDefaultRoleRoute } from '../../utils/roleRouting';
+import PageLoader from '../../components/PageLoader';
 
 const UsuarioPage: React.FC = () => {
-  const profile = useAuthStore((state) => state.profile);
-  const roles = profile?.roles || [];
-  const hasTouristRole = roles.some(
-    (role) => role.code === 'turista' && role.is_active && !role.is_system,
-  );
+  const { profile, loading, initialized } = useAuthStore();
 
-  if (!profile) return <Navigate to="/unauthorized" replace />;
+  if (loading || !initialized) return <PageLoader />;
+  if (!profile) return <Navigate to="/login" replace />;
 
-  return (
-    <Navigate
-      to={hasTouristRole ? '/turista' : getDefaultRoleRoute(roles)}
-      replace
-    />
-  );
+  const roles = profile.roles || [];
+  const targetRoute = getDefaultRoleRoute(roles);
+
+  return <Navigate to={targetRoute} replace />;
 };
 
 export default UsuarioPage;
