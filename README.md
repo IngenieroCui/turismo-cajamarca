@@ -4,6 +4,8 @@ Turismo Cajamarca es una PWA para descubrir experiencias de Cajamarca y operar u
 
 ## Arquitectura
 
+Consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para flujos, decisiones y contribuciones comprobables.
+
 - React 19, TypeScript 6 y Vite 8.
 - Zustand para el estado de sesión y contexto de plataforma.
 - React Router para rutas protegidas y carga diferida de paneles.
@@ -88,6 +90,12 @@ npm run demo:seed # siembra cuentas y datos ficticios con una service key privad
 La versión desplegada se mantiene en [turismo-cajamarca-beta.vercel.app](https://turismo-cajamarca-beta.vercel.app). El seeder idempotente `scripts/seed-demo-accounts.mjs` crea o reutiliza las cuentas `turista.demo.cajamarca@gmail.com` (Turista), `prestador.demo.cajamarca@gmail.com` (Prestador Turístico) y `moderador.demo.cajamarca@gmail.com` (Moderador), añade un proveedor y una experiencia ficticia de Anaime y conserva el catálogo histórico de 25 elementos. Ejecuta `npm run demo:seed` con `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` definidos únicamente en el entorno privado; las contraseñas pueden pasarse mediante `DEMO_TURISTA_PASSWORD`, `DEMO_PRESTADOR_PASSWORD` y `DEMO_MODERADOR_PASSWORD`. Si se generan, quedan en `demo-credentials.local`, ignorado por Git.
 
 La migración 20 evita que el trigger compartido de `auth.users` cree perfiles de Turismo para inscripciones de otras aplicaciones. El frontend envía el marcador `application=turismo-cajamarca`; ningún rol administrativo se deriva de ese marcador. El seeder usa la service key solo en ejecución operativa y no la incluye en el bundle ni en el repositorio.
+
+## Estado y contribuciones
+
+La demo de referencia contiene 26 experiencias, cuentas ficticias y una reserva verificada en la ejecución previa del proyecto; este sprint documental no repite esa prueba ni publica contraseñas. El entorno comparte proyecto Supabase con Komerizo, con separación lógica de tablas y trigger, sin aislamiento físico completo.
+
+Se conserva la autoría de jnaveros40 y Andrecodev conforme a [PROVENANCE.md](PROVENANCE.md). Juan David Reyes Cure registra ajustes del seeder (`2acd3b0`), recuperación de chunks (`8a52496`) y fechas de reserva (`39e3aa6`); no se atribuye todo el desarrollo de la plataforma.
 
 ## Licencia
 
