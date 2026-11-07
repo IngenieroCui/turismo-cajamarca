@@ -44,7 +44,15 @@ export const formatItinerarySlot = (value?: string | null): string => lookup(lab
 export const formatCop = (value: number | null | undefined): string =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value ?? 0);
 
-export const formatDate = (value?: string | Date | null): string => value ? new Intl.DateTimeFormat('es-CO').format(new Date(value)) : '—';
+const parseDisplayDate = (value: string | Date): Date => {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  return new Date(value);
+};
+
+export const formatDate = (value?: string | Date | null): string => value ? new Intl.DateTimeFormat('es-CO').format(parseDisplayDate(value)) : '—';
 export const formatDateTime = (value?: string | Date | null): string => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
 
 export const safeExternalUrl = (value?: string | null): string | null => {
