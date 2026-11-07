@@ -41,6 +41,9 @@ for (const account of accounts) {
     if (error) throw error;
     account.id = data.user.id;
     account.created = true;
+    const record = `${account.role}: ${account.email}\nPassword: ${account.password}\nCreated now\n\n`;
+    await fs.appendFile(credentialPath, record, { mode: 0o600 });
+    previousCredentials += record;
   }
 }
 
@@ -61,15 +64,15 @@ const { error: providerError } = await admin.from('turismo_provider_profiles').u
 }, { onConflict: 'profile_id' });
 if (providerError) throw providerError;
 
-let { data: item, error: itemError } = await admin.from('turismo_catalog_items').select('id').eq('slug', 'sendero-anaime-demo').maybeSingle();
+let { data: item, error: itemError } = await admin.from('turismo_catalog_items').select('id,provider_id,metadata').eq('slug', 'sendero-anaime-demo').maybeSingle();
 if (itemError) throw itemError;
 if (item && (item.provider_id !== provider.id || item.metadata?.demo !== true)) throw new Error('El slug demo existente pertenece a otro registro; no se modifica.');
 if (!item) {
   ({ data: item, error: itemError } = await admin.from('turismo_catalog_items').insert({
-    provider_id: provider.id, item_type: 'experience', title: 'Sendero Anaime Demo', slug: 'sendero-anaime-demo', category: 'Naturaleza',
+    provider_id: provider.id, item_type: 'tour', title: 'Sendero Anaime Demo', slug: 'sendero-anaime-demo', category: 'Naturaleza',
     short_description: 'Recorrido ficticio por el cañón de Anaime para demostración.', description: 'Experiencia ilustrativa; no corresponde a una oferta comercial real.',
     location: 'Anaime, Cajamarca - Tolima', cover_image_url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee', price_from: 85000,
-    price_label: 'Desde $85.000 COP', duration_text: '4 horas', difficulty: 'moderada', is_reservable: true, status: 'published', is_featured: true,
+    price_label: 'Desde $85.000 COP', duration_text: '4 horas', difficulty: 'moderado', is_reservable: true, status: 'published', is_featured: true,
     published_at: new Date().toISOString(), metadata: { demo: true },
   }).select('id').single());
   if (itemError) throw itemError;
