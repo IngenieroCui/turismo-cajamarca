@@ -9,3 +9,7 @@
 - El original de Juan Naveros no se modifica. Los nuevos cambios, documentación
   y configuración de demo se registran con sus fechas reales.
 - La demostración utilizará servicios propios y datos ficticios.
+
+Demo: https://turismo-cajamarca.vercel.app
+La base de demo comparte proyecto Supabase con Komerizo por decisión del
+propietario. Las tablas de Turismo usan su prefijo `turismo_`.

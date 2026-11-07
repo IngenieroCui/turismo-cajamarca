@@ -1530,7 +1530,7 @@ REVOKE ALL ON FUNCTION public.turismo_provider_update_reservation(UUID,TEXT,NUME
 GRANT EXECUTE ON FUNCTION public.turismo_provider_update_reservation(UUID,TEXT,NUMERIC,TEXT),public.turismo_cancel_reservation(UUID) TO authenticated;
 
 
-+
+
 CREATE TABLE IF NOT EXISTS public.turismo_catalog_availability (
   item_id UUID NOT NULL REFERENCES public.turismo_catalog_items(id) ON DELETE CASCADE,
   available_date DATE NOT NULL,
