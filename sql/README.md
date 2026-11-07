@@ -3,7 +3,7 @@
 ## Ejecución
 
 - Base nueva: ejecutar únicamente `00_master_schema_all_in_one.sql`.
-- Base existente: aplicar, en orden, las migraciones 08, 09, 10, 11, 12, 13, 14, 15 y 16.
+- Base existente: aplicar, en orden, las migraciones 08, 09, 10, 11, 12, 13, 14, 15, 16 y 17.
 - El maestro contiene el estado final. No apliques las migraciones incrementales sobre una instalación nueva después del maestro.
 - Las migraciones históricas 08–15 permanecen inmutables.
 
@@ -13,7 +13,7 @@ El registro público asigna el rol Turista y crea `turismo_tourist_profiles`. La
 
 Afiliado y Embajador son roles de crecimiento aditivos: cada asignación requiere Turista activo, y sus permisos solo cubren referidos y comisiones. Turista conserva las capacidades de consumidor. Desarrollador/DevOps no puede coexistir con roles de negocio. Las identidades de sistema se mantienen separadas de las personas; los estados mixtos heredados se registran sin desactivar roles automáticamente y requieren limpieza explícita de Super Admin.
 
-La migración 16 aún no se ha aplicado a la base de datos en vivo. Las correcciones pendientes se realizan directamente en esa migración y en el maestro; no se debe crear una migración 17.
+En la base de demostración, la migración 17 protege únicamente `turismo_platform_settings` y `turismo_schema_version`: RLS activo, políticas restrictivas sin acceso directo para `anon`/`authenticated` y privilegios de tabla revocados. La aplicación conserva las RPC de configuración pública, administración autorizada y salud del sistema; las versiones solo se escriben mediante migraciones privilegiadas.
 
 ## Autorización
 
