@@ -241,6 +241,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         password,
         options: {
           data: {
+            application: 'turismo-cajamarca',
             full_name: fullName,
             phone: phone || null,
             document_type: documentType,
