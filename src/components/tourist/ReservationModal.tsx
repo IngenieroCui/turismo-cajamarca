@@ -18,7 +18,10 @@ interface Props {
   onClose: () => void;
   onCreated: () => void;
 }
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
 const ReservationModal: React.FC<Props> = ({ item, onClose, onCreated }) => {
   const [reservationDate, setReservationDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -30,12 +33,13 @@ const ReservationModal: React.FC<Props> = ({ item, onClose, onCreated }) => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [optionsFailed, setOptionsFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
   useEffect(() => {
     let mounted = true;
     void Promise.all([
-      getCatalogAvailability(item.id),
+      getCatalogAvailability(item.id, today()),
       hasExplicitAvailability(item.id),
       getActivePromotionsForItem(item.id),
     ])
@@ -46,7 +50,12 @@ const ReservationModal: React.FC<Props> = ({ item, onClose, onCreated }) => {
           setPromotions(active);
         }
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (mounted) {
+          setOptionsFailed(true);
+          setError("No fue posible consultar la disponibilidad. Cierra y vuelve a intentarlo.");
+        }
+      })
       .finally(() => {
         if (mounted) setLoadingOptions(false);
       });
@@ -117,7 +126,7 @@ const ReservationModal: React.FC<Props> = ({ item, onClose, onCreated }) => {
             <button
               type="submit"
               form="reservation-form"
-              disabled={saving}
+              disabled={saving || loadingOptions || optionsFailed}
               className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-xs font-bold text-white disabled:opacity-50"
             >
               <CalendarDays className="h-4 w-4" />
@@ -144,6 +153,9 @@ const ReservationModal: React.FC<Props> = ({ item, onClose, onCreated }) => {
             >
               {error}
             </p>
+          )}
+          {!loadingOptions && !optionsFailed && explicitAvailability && availableDates.length === 0 && (
+            <p className="text-xs text-[var(--text-secondary)]">No hay fechas disponibles por ahora.</p>
           )}
           {loadingOptions && (
             <p className="text-xs text-[var(--text-secondary)]">
